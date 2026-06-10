@@ -1,4 +1,4 @@
-﻿namespace MinErrorMap
+namespace MinErrorMap
 {
     partial class Form1
     {
@@ -109,12 +109,12 @@
             tabPage1.Controls.Add(numErrors);
             tabPage1.Controls.Add(numCols);
             tabPage1.Controls.Add(numRows);
-            tabPage1.Location = new Point(4, 24);
-            tabPage1.Name = "tabPage1";
-            tabPage1.Padding = new Padding(3);
-            tabPage1.Size = new Size(976, 553);
-            tabPage1.TabIndex = 0;
-            tabPage1.Text = "Generator instancji";
+            tabPage1.Location        = new Point(4, 24);
+            tabPage1.Name            = "tabPage1";
+            tabPage1.Padding         = new Padding(3);
+            tabPage1.Size            = new Size(976, 553);
+            tabPage1.TabIndex        = 0;
+            tabPage1.Text            = "Generator instancji";
             tabPage1.UseVisualStyleBackColor = true;
 
             // label1 – wiersze
@@ -208,10 +208,10 @@
 
             // btnSave
             btnSave.Location = new Point(33, 406);
-            btnSave.Name = "btnSave";
-            btnSave.Size = new Size(144, 36);
+            btnSave.Name     = "btnSave";
+            btnSave.Size     = new Size(144, 36);
             btnSave.TabIndex = 13;
-            btnSave.Text = "Zapisz do pliku";
+            btnSave.Text     = "Zapisz do pliku";
             btnSave.UseVisualStyleBackColor = true;
             btnSave.Click += btnSave_Click;
 
@@ -231,8 +231,8 @@
             dgvMatrix.Location = new Point(331, 64);
             dgvMatrix.Name = "dgvMatrix";
             dgvMatrix.RowHeadersWidth = 62;
-            dgvMatrix.Size = new Size(619, 465);
-            dgvMatrix.TabIndex = 8;
+            dgvMatrix.Size       = new Size(619, 465);
+            dgvMatrix.TabIndex   = 8;
             dgvMatrix.CellValueChanged += dgvMatrix_CellValueChanged;
 
             // ── tabPage2 – Tabu Search ────────────────────────────────────
@@ -412,18 +412,18 @@
             btnStop.Name = "btnStop";
             btnStop.Size = new Size(130, 50);
             btnStop.TabIndex = 6;
-            btnStop.Text = "STOP";
+            btnStop.Text     = "STOP";
             btnStop.UseVisualStyleBackColor = true;
             btnStop.Click += btnStop_Click;
 
             // ── tabPage3 – Wyniki ─────────────────────────────────────────
             tabPage3.Controls.Add(dgvResults);
             tabPage3.Location = new Point(4, 24);
-            tabPage3.Name = "tabPage3";
-            tabPage3.Padding = new Padding(3);
-            tabPage3.Size = new Size(976, 553);
+            tabPage3.Name     = "tabPage3";
+            tabPage3.Padding  = new Padding(3);
+            tabPage3.Size     = new Size(976, 553);
             tabPage3.TabIndex = 2;
-            tabPage3.Text = "Wyniki";
+            tabPage3.Text     = "Wyniki";
             tabPage3.UseVisualStyleBackColor = true;
 
             dgvResults.AllowUserToAddRows = false;
@@ -446,8 +446,8 @@
 
             // ── Form ──────────────────────────────────────────────────────
             AutoScaleDimensions = new SizeF(7F, 15F);
-            AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1017, 605);
+            AutoScaleMode       = AutoScaleMode.Font;
+            ClientSize          = new Size(1017, 605);
             Controls.Add(tabControl1);
             Name = "MinErrorMap – Tabu Search";
             Text = "MinErrorMap – Tabu Search";
