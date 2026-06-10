@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "qQZPKikJU9AsMQMeMc7lPUopy8l0jjYzqBAZoBBg2Te1DB+y05J0DWSIpirvaEEz4ytjwn1GeUQob8ZhbUAhuw==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Tomasz\\Desktop\\studia\\VS_2022\\Zaawansowane_programowanie\\MinErrorMap\\MinErrorMap\\MinErrorMap.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Tomasz\\.nuget\\packages\\winforms.datavisualization\\1.10.2\\winforms.datavisualization.1.10.2.nupkg.sha512"
+  ],
+  "logs": []
+}
