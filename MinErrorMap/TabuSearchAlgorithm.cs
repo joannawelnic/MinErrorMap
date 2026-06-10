@@ -1,293 +1,291 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
 
 namespace MinErrorMap
 {
+    /// <summary>
+    /// Dane przekazywane do UI po każdej iteracji algorytmu.
+    /// </summary>
+    public class ProgressInfo
+    {
+        public int TotalIterations { get; set; }
+        public int BestScore { get; set; }
+        public int InitialScore { get; set; }
+        public int CurrentRestart { get; set; }
+        public int TotalRestarts { get; set; }
+        public long ElapsedMs { get; set; }
+        public int IterationsWithoutImprovement { get; set; }
+        public int MaxIterationsWithoutImprovement { get; set; }
+    }
+
+    /// <summary>
+    /// Wynik działania algorytmu Tabu Search.
+    /// </summary>
+    public class SearchResult
+    {
+        public int[] BestOrder { get; set; }
+        public int BestScore { get; set; }
+        public int TotalIterations { get; set; }
+        public long ElapsedMs { get; set; }
+        public int RestartsPerformed { get; set; }
+    }
+
     public class TabuSearchAlgorithm
     {
-        // Dwuwymiarowa tablica przechowująca informacje o zakazach
         private int[,] _tabuList;
-
-        // Zmienna określająca, przez ile iteracji dany ruch ma być zakazany (kadencja Tabu)
         private int _tabuTenure;
+        private Random _random = new Random();
 
-        /// <summary>
-        /// Główna funkcja celu. Ocenia jakość podanego układu kolumn.
-        /// </summary>
-        /// <param name="matrix">Oryginalna macierz z błędami.</param>
-        /// <param name="columnOrder">Tablica reprezentująca aktualnie testowaną kolejność kolumn (np. [3, 0, 1, 2]).</param>
-        /// <returns>Zwraca łączną liczbę błędów do poprawy (im mniej, tym lepiej).</returns>
+        // ─────────────────────────────────────────────────────────────────────
+        // FUNKCJA CELU  –  O(m·n) zamiast O(m·n³)
+        //
+        // Klasyczne podejście iteruje po wszystkich parach (start, end) → O(n²) na wiersz,
+        // a wewnętrzna pętla liczy koszty → łącznie O(n³) na wiersz.
+        //
+        // Kluczowa obserwacja (specjalizacja algorytmu):
+        //   cost(start,end) = (end−start+1) + totalOnes − 2·ones_inside(start,end)
+        //
+        // Minimalizacja kosztu ↔ maksymalizacja sumy podciągu tablicy a[k] = 2·val[k]−1,
+        // gdzie a[k] = +1 gdy val[k]=1, a[k] = −1 gdy val[k]=0.
+        // To jest klasyczny problem MAXIMUM SUBARRAY SUM → Algorytm Kadane'a → O(n) na wiersz.
+        //
+        // Łączna złożoność ewaluacji: O(m·n).
+        // Łączna złożoność jednej iteracji TS: O(n²·m·n) = O(m·n³).
+        // ─────────────────────────────────────────────────────────────────────
         public int CalculateObjectiveFunction(int[,] matrix, int[] columnOrder)
         {
-            int totalErrors = 0;
-            // 0 oznacza 1 wymiar tablicy a 1 drugi wymiar tablicy- liczba wierszy i kolumn
+            int total = 0;
             int rows = matrix.GetLength(0);
             int cols = matrix.GetLength(1);
-
-            // Sprawdzamy każdy wiersz po kolei
             for (int i = 0; i < rows; i++)
-            {
-                // Dodajemy do sumy minimalną liczbę błędów znalezioną dla danego wiersza
-                totalErrors += CalculateMinErrorsForRow(matrix, i, columnOrder, cols);
-            }
-
-            return totalErrors;
+                total += CalculateRowErrorKadane(matrix, i, columnOrder, cols);
+            return total;
         }
 
-        /// <summary>
-        /// Funkcja pomocnicza: liczy minimalne błędy dla jednego konkretnego wiersza.
-        /// </summary>
-        private int CalculateMinErrorsForRow(int[,] matrix, int rowIndex, int[] columnOrder, int cols)
+        private int CalculateRowErrorKadane(int[,] matrix, int rowIndex, int[] columnOrder, int cols)
         {
-            // zakładamy na start najgorszy scenariusz: musimy zmienić wszystkie komórki w wierszu
-            int minFlips = cols;
+            // Policz jedynki w wierszu
+            int totalOnes = 0;
+            for (int k = 0; k < cols; k++)
+                totalOnes += matrix[rowIndex, columnOrder[k]];
 
-            // sprawdzamy każdy możliwy indeks początkowy dla "idealnego" bloku jedynek - sprawdzanie tylko do przedostatniej kolumny
-            for (int start = 0; start < cols - 1; start++)
+            if (totalOnes == 0) return 0; // wiersz bez jedynek – trywialnie C1P
+
+            // Algorytm Kadane'a: szukamy maksymalnej sumy podciągu tablicy (+1 lub -1)
+            int maxSubarraySum = int.MinValue;
+            int currentSum = 0;
+
+            for (int k = 0; k < cols; k++)
             {
-                // Sprawdzamy każdy możliwy indeks końcowy dla "idealnego" bloku jedynek
-                // ZMIANA: Koniec bloku (end) musi być przynajmniej o 1 większy od startu
-                // co gwarantuje, że długość ocenianego bloku to minimum 2
-                for (int end = start + 1; end < cols; end++)
-                {
-                    int currentFlips = 0; // licznik błędów dla tej konkretnej kombinacji (start-end)
-
-                    // przechodzimy przez wszystkie kolumny w wierszu zgodnie z testowaną kolejnością (columnOrder)
-                    for (int k = 0; k < cols; k++)
-                    {
-                        // pobieramy prawdziwy indeks kolumny z naszego rozwiązania
-                        int realColIndex = columnOrder[k];
-                        // odczytujemy wartość komórki
-                        int cellValue = matrix[rowIndex, realColIndex];
-
-                        if (k >= start && k <= end)
-                        {
-                            // jesteśmy WEWNĄTRZ założonego bloku jedynek
-                            // jeśli jest tu zero (0) to traktujemy to jako błąd do poprawy
-                            if (cellValue == 0) currentFlips++;
-                        }
-                        else
-                        {
-                            // jesteśmy POZA założonym blokiem jedynek (powinny tu być same zera)
-                            // jeśli jest tu jedynka (1) to traktujemy to jako błąd do usunięcia
-                            if (cellValue == 1) currentFlips++;
-                        }
-                    }
-
-                    // jeśli ta kombinacja wymaga mniej poprawek zapisujemy ją jako nasz nowy rekord dla tego wiersza
-                    if (currentFlips < minFlips)
-                    {
-                        minFlips = currentFlips;
-                    }
-                }
+                int element = 2 * matrix[rowIndex, columnOrder[k]] - 1; // +1 dla 1, -1 dla 0
+                currentSum = Math.Max(element, currentSum + element);
+                if (currentSum > maxSubarraySum) maxSubarraySum = currentSum;
             }
 
-            return minFlips;
+            // min_cost = totalOnes − max_subarray_sum (min 0)
+            return Math.Max(0, totalOnes - maxSubarraySum);
         }
 
-        /// <summary>
-        /// Generuje wszystkich możliwych sąsiadów dla aktualnego ułożenia kolumn.
-        /// Sąsiad powstaje przez zamianę miejscami dwóch dowolnych kolumn.
-        /// </summary>
-        /// <param name="currentOrder">Aktualna kolejność kolumn (np. [0, 1, 2, 3]).</param>
-        /// <returns>Lista nowych, sąsiednich ułożeń kolumn.</returns>
-        public List<int[]> GenerateNeighborhood(int[] currentOrder)
-        {
-            // przygotowujemy pustą listę do której będziemy wrzucać nowych sąsiadów
-            List<int[]> neighborhood = new List<int[]>();
-            int numberOfColumns = currentOrder.Length;
-
-            // Używamy dwóch pętli for aby wygenerować każdą możliwą unikalną parę do zamiany
-            for (int i = 0; i < numberOfColumns - 1; i++)
-            {
-                for (int j = i + 1; j < numberOfColumns; j++)
-                {
-                    // BARDZO WAŻNE: Tworzymy kopię aktualnego ułożenia! 
-                    // Jeśli byśmy tego nie zrobili, zmienialibyśmy oryginalną tablicę.
-                    int[] neighbor = (int[])currentOrder.Clone();
-
-                    // Wykonujemy operację Swap (zamiana miejscami wartości pod indeksami i oraz j)
-                    int temp = neighbor[i];
-                    neighbor[i] = neighbor[j];
-                    neighbor[j] = temp;
-
-                    // Dodajemy nowo utworzonego "sąsiada" do naszej listy
-                    neighborhood.Add(neighbor);
-                }
-            }
-
-            return neighborhood; // Zwracamy gotową listę wszystkich sąsiadów
-        }
-
-        /// <summary>
-        /// Inicjalizuje lub resetuje Listę Tabu przed startem algorytmu.
-        /// </summary>
-        /// <param name="numberOfColumns">Liczba kolumn w naszej macierzy (rozmiar listy).</param>
-        /// <param name="tabuTenure">Jak długo dany ruch ma być zakazany.</param>
+        // ─────────────────────────────────────────────────────────────────────
+        //  LISTA TABU
+        // ─────────────────────────────────────────────────────────────────────
         public void InitializeTabuList(int numberOfColumns, int tabuTenure)
         {
-            // Tworzymy nową, pustą tablicę o wymiarach liczba kolumn x liczba kolumn
             _tabuList = new int[numberOfColumns, numberOfColumns];
             _tabuTenure = tabuTenure;
         }
 
-        /// <summary>
-        /// Sprawdza, czy zamiana dwóch konkretnych kolumn jest w tej chwili zakazana.
-        /// </summary>
-        /// <param name="col1">Indeks pierwszej kolumny do zamiany.</param>
-        /// <param name="col2">Indeks drugiej kolumny do zamiany.</param>
-        /// <param name="currentIteration">Numer aktualnie wykonywanej iteracji algorytmu.</param>
-        /// <returns>Zwraca true, jeśli ruch jest zablokowany, w przeciwnym razie false.</returns>
         public bool IsTabu(int col1, int col2, int currentIteration)
-        {
-            // Jeśli aktualna iteracja nie przekroczyła zapisanej daty wygaśnięcia zakazu, ruch jest Tabu
-            return _tabuList[col1, col2] >= currentIteration;
-        }
+            => _tabuList[col1, col2] >= currentIteration;
 
-        /// <summary>
-        /// Wpisuje ruch na Listę Tabu po jego wykonaniu.
-        /// </summary>
-        /// <param name="col1">Indeks pierwszej zamienionej kolumny.</param>
-        /// <param name="col2">Indeks drugiej zamienionej kolumny.</param>
-        /// <param name="currentIteration">Numer iteracji, w której wykonano ruch.</param>
         public void MakeTabu(int col1, int col2, int currentIteration)
         {
-            // Obliczamy "datę wygaśnięcia" zakazu
-            int expirationIteration = currentIteration + _tabuTenure;
-
-            // Zapisujemy zakaz w obie strony. 
-            // Zamiana kolumny 1 z 2 to to samo co 2 z 1, więc blokujemy obie kombinacje.
-            _tabuList[col1, col2] = expirationIteration;
-            _tabuList[col2, col1] = expirationIteration;
+            int expiration = currentIteration + _tabuTenure;
+            _tabuList[col1, col2] = expiration;
+            _tabuList[col2, col1] = expiration;
         }
 
-        /// <summary>
-        /// Uruchamia główną pętlę algorytmu Tabu Search.
-        /// </summary>
-        /// <param name="matrix">Macierz, którą chcemy uporządkować.</param>
-        /// <param name="maxIterationsWithoutImprovement">Warunek stopu: ile iteracji bez poprawy kończy algorytm.</param>
-        /// <param name="tabuTenure">Kadencja Tabu: na jak długo blokujemy ruch.</param>
-        /// <param name="onProgressUpdate">Delegat pozwalający przekazać dane do paska postępu w UI (nr iteracji, najlepszy wynik).</param>
-        /// <returns>Zwraca tablicę z najlepszą znalezioną kolejnością kolumn.</returns>
-        public int[] RunTabuSearch(int[,] matrix, int maxIterationsWithoutImprovement, int tabuTenure, Action<int, int> onProgressUpdate, CancellationToken cancellationToken, ManualResetEventSlim pauseEvent)
+        // ─────────────────────────────────────────────────────────────────────
+        //  PERTURBACJA – losowe k swapów na kopii rozwiązania
+        //  Cel: dywersyfikacja; wyrzucenie algorytmu z basenu lokalnego optimum
+        //  przy zachowaniu dotychczas znalezionego globalnego rekordu.
+        // ─────────────────────────────────────────────────────────────────────
+        private int[] ApplyPerturbation(int[] order, int perturbationSize)
+        {
+            int cols = order.Length;
+            int[] perturbed = (int[])order.Clone();
+            for (int p = 0; p < perturbationSize; p++)
+            {
+                int i = _random.Next(cols);
+                int j;
+                do { j = _random.Next(cols); } while (j == i);
+                (perturbed[i], perturbed[j]) = (perturbed[j], perturbed[i]);
+            }
+            return perturbed;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
+        //  GŁÓWNA FUNKCJA ALGORYTMU
+        //
+        //  Parametry:
+        //    maxIterationsWithoutImprovement – warunek stopu na fazę
+        //    tabuTenure                      – kadencja Tabu (stała liczba iteracji)
+        //    numberOfRestarts                – ile razy restartujemy z perturbacją
+        //    perturbationSize                – ile losowych swapów przy restarcie
+        //    neighborhoodSamplePct           – 0.01–1.0 (1.0 = pełne sąsiedztwo)
+        // ─────────────────────────────────────────────────────────────────────
+        public SearchResult RunTabuSearch(
+            int[,] matrix,
+            int maxIterationsWithoutImprovement,
+            int tabuTenure,
+            int numberOfRestarts,
+            int perturbationSize,
+            double neighborhoodSamplePct,
+            Action<ProgressInfo> onProgressUpdate,
+            CancellationToken cancellationToken,
+            ManualResetEventSlim pauseEvent)
         {
             int cols = matrix.GetLength(1);
+            var stopwatch = Stopwatch.StartNew();
 
-            // Przygotowanie pamięci (Listy Tabu)
-            InitializeTabuList(cols, tabuTenure);
+            // Pre-generacja wszystkich par (i,j) z i<j – używana do próbkowania sąsiedztwa
+            int totalPairs = cols * (cols - 1) / 2;
+            var allPairs = new List<(int posI, int posJ)>(totalPairs);
+            for (int i = 0; i < cols - 1; i++)
+                for (int j = i + 1; j < cols; j++)
+                    allPairs.Add((i, j));
 
-            // Utworzenie początkowego ułożenia kolumn (np. [0, 1, 2, 3])
+            int sampleSize = Math.Max(1, (int)Math.Round(totalPairs * neighborhoodSamplePct));
+            bool fullNeighborhood = sampleSize >= totalPairs;
+
+            // Inicjalne rozwiązanie: kolejność tożsamościowa [0,1,2,...,n-1]
             int[] currentOrder = new int[cols];
             for (int i = 0; i < cols; i++) currentOrder[i] = i;
 
-            // Ocena początkowego układu i zapisanie go jako nasz "globalny rekord"
-            // zapisanie poczatkowej wartosci funkcji celu i ustawienia kolumn
-            int bestGlobalScore = CalculateObjectiveFunction(matrix, currentOrder);
+            int initialScore = CalculateObjectiveFunction(matrix, currentOrder);
+            int bestGlobalScore = initialScore;
             int[] bestGlobalOrder = (int[])currentOrder.Clone();
+            int totalIterations = 0;
 
-            int currentScore = bestGlobalScore;
-            int iterationsWithoutImprovement = 0;
-            int currentIteration = 0;
-
-            // GŁÓWNA PĘTLA - działa dopóki brak poprawy nie osiągnie limitu
-            while (iterationsWithoutImprovement < maxIterationsWithoutImprovement)
+            // ── PĘTLA RESTARTÓW ──────────────────────────────────────────────
+            // restart=0: pierwsze uruchomienie od rozwiązania tożsamościowego
+            // restart>0: perturbacja najlepszego globalnego rozwiązania → nowy start
+            for (int restart = 0; restart <= numberOfRestarts; restart++)
             {
-                // NOWE: Sprawdzamy czy mamy zatrzymać algorytm lub go zapauzować
+                if (cancellationToken.IsCancellationRequested) break;
 
-                // jeśli kliknięto Pauzę algorytm "zaśnie" w tym miejscu i poczeka na wznowienie
-                // BEZPIECZNA PAUZA I STOP
-                try
+                if (restart > 0)
                 {
-                    pauseEvent.Wait(cancellationToken); // czekamy jeśli włączono pauzę
-                }
-                catch (OperationCanceledException)
-                {
-                    break; // przerwano algorytm przyciskiem Stop podczas pauzy!
+                    // Perturbacja: losowe swappy na najlepszym dotychczas rozwiązaniu
+                    currentOrder = ApplyPerturbation(bestGlobalOrder, perturbationSize);
                 }
 
-                // jeśli kliknięto Stop wychodzimy z pętli
-                if (cancellationToken.IsCancellationRequested)
+                int currentScore = CalculateObjectiveFunction(matrix, currentOrder);
+                InitializeTabuList(cols, tabuTenure); // świeża lista Tabu na każdą fazę
+                int iterationsWithoutImprovement = 0;
+                int phaseIteration = 0;
+
+                // ── PĘTLA TABU SEARCH W FAZIE ───────────────────────────────
+                while (iterationsWithoutImprovement < maxIterationsWithoutImprovement)
                 {
-                    break;
-                }
+                    // Obsługa pauzy i stopu
+                    try { pauseEvent.Wait(cancellationToken); }
+                    catch (OperationCanceledException) { goto Done; }
+                    if (cancellationToken.IsCancellationRequested) goto Done;
 
-                currentIteration++;
+                    phaseIteration++;
+                    totalIterations++;
 
-                // dla aktualnego ulozenia kolumn zapisujemy tu najmniejsza wartosc funkcji celu i ulozenie
-                int bestNeighborScore = int.MaxValue;
-                int[] bestNeighborOrder = null;
-                int bestSwappedCol1 = -1;
-                int bestSwappedCol2 = -1;
+                    int bestNeighborScore = int.MaxValue;
+                    int[] bestNeighborOrder = null;
+                    int bestSwapRealCol1 = -1, bestSwapRealCol2 = -1;
 
-                // dla aktualnego ustawienia sprawdzamy wszystkie możliwe zamiany dwóch kolumn i szukamy najlepszego rozwiazania
-                for (int i = 0; i < cols - 1; i++)
-                {
-                    for (int j = i + 1; j < cols; j++)
+                    // Próbkowanie sąsiedztwa: częściowy Fisher-Yates dla podzbioru par
+                    if (!fullNeighborhood)
                     {
-                        // tworzymy sąsiada przez zamianę
-                        int[] neighbor = (int[])currentOrder.Clone();
-                        int temp = neighbor[i];
-                        neighbor[i] = neighbor[j];
-                        neighbor[j] = temp;
+                        for (int k = 0; k < sampleSize; k++)
+                        {
+                            int rndIdx = k + _random.Next(totalPairs - k);
+                            (allPairs[k], allPairs[rndIdx]) = (allPairs[rndIdx], allPairs[k]);
+                        }
+                    }
 
-                        // obliczamy błędy dla tego sąsiada
+                    // Ocena sąsiadów w próbce
+                    for (int pairIdx = 0; pairIdx < sampleSize; pairIdx++)
+                    {
+                        var (posI, posJ) = allPairs[pairIdx];
+
+                        // Tworzenie sąsiada przez swap pozycji posI i posJ
+                        int[] neighbor = (int[])currentOrder.Clone();
+                        (neighbor[posI], neighbor[posJ]) = (neighbor[posJ], neighbor[posI]);
+
                         int neighborScore = CalculateObjectiveFunction(matrix, neighbor);
 
-                        // UWAGA: sprawdzamy JAKIE konkretnie kolumny zamieniliśmy (ich prawdziwe indeksy)
-                        int realCol1 = currentOrder[i];
-                        int realCol2 = currentOrder[j];
+                        // Prawdziwe indeksy kolumn (do tablicy Tabu)
+                        int realCol1 = currentOrder[posI];
+                        int realCol2 = currentOrder[posJ];
 
-                        bool isTabu = IsTabu(realCol1, realCol2, currentIteration);
-                        bool beatsGlobalBest = neighborScore < bestGlobalScore; // Kryterium aspiracji
+                        bool isTabu = IsTabu(realCol1, realCol2, phaseIteration);
+                        bool beatsGlobal = neighborScore < bestGlobalScore; // kryterium aspiracji
 
-                        // akceptujemy sąsiada tylko jeśli nie jest Tabu ALBO bije globalny rekord i wtedy moze byc TABU
-                        if (!isTabu || beatsGlobalBest)
+                        // Akceptacja: ruch dozwolony LUB bije globalny rekord (aspiracja)
+                        if (!isTabu || beatsGlobal)
                         {
-                            // czy to lokalnie byla najlepsza zamiana
                             if (neighborScore < bestNeighborScore)
                             {
                                 bestNeighborScore = neighborScore;
                                 bestNeighborOrder = neighbor;
-                                bestSwappedCol1 = realCol1;
-                                bestSwappedCol2 = realCol2;
+                                bestSwapRealCol1 = realCol1;
+                                bestSwapRealCol2 = realCol2;
                             }
                         }
                     }
-                }
 
-                // Po lokalnym wyszukaniu najlepszej zamiany wykonujemy najlepszy dozwolony ruch
-                currentOrder = bestNeighborOrder;
-                currentScore = bestNeighborScore;
-                // 
-                MakeTabu(bestSwappedCol1, bestSwappedCol2, currentIteration);
+                    if (bestNeighborOrder == null) break; // wszyscy sąsiedzi zablokowani
 
-                // Sprawdzamy, czy pobiliśmy historyczny rekord
-                if (currentScore < bestGlobalScore)
-                {
-                    bestGlobalScore = currentScore;
-                    bestGlobalOrder = (int[])currentOrder.Clone();
-                    iterationsWithoutImprovement = 0; // Znaleźliśmy poprawę, więc zerujemy licznik!
-                }
-                else
-                {
-                    iterationsWithoutImprovement++; // Brak poprawy, licznik rośnie
-                }
-                // NAPRAWA ZAWIESZANIA UI (Wysyłamy dane tylko co 10 iteracji)
-                //if (currentIteration % 3 == 0)
-                //{
-                    onProgressUpdate?.Invoke(currentIteration, bestGlobalScore);
-                //}
+                    currentOrder = bestNeighborOrder;
+                    currentScore = bestNeighborScore;
+                    MakeTabu(bestSwapRealCol1, bestSwapRealCol2, phaseIteration);
 
+                    // Aktualizacja globalnego rekordu
+                    if (currentScore < bestGlobalScore)
+                    {
+                        bestGlobalScore = currentScore;
+                        bestGlobalOrder = (int[])currentOrder.Clone();
+                        iterationsWithoutImprovement = 0;
+                    }
+                    else
+                    {
+                        iterationsWithoutImprovement++;
+                    }
+
+                    // Raport do UI
+                    onProgressUpdate?.Invoke(new ProgressInfo
+                    {
+                        TotalIterations = totalIterations,
+                        BestScore = bestGlobalScore,
+                        InitialScore = initialScore,
+                        CurrentRestart = restart,
+                        TotalRestarts = numberOfRestarts,
+                        ElapsedMs = stopwatch.ElapsedMilliseconds,
+                        IterationsWithoutImprovement = iterationsWithoutImprovement,
+                        MaxIterationsWithoutImprovement = maxIterationsWithoutImprovement
+                    });
+                }
             }
-            // Wysyłamy informację do interfejsu użytkownika (jeśli podano delegat)
-            onProgressUpdate?.Invoke(currentIteration, bestGlobalScore);
-            // Zwracamy najlepsze znalezione ułożenie
-            return bestGlobalOrder;
-        }
 
+Done:
+            stopwatch.Stop();
+            return new SearchResult
+            {
+                BestOrder = bestGlobalOrder,
+                BestScore = bestGlobalScore,
+                TotalIterations = totalIterations,
+                ElapsedMs = stopwatch.ElapsedMilliseconds,
+                RestartsPerformed = numberOfRestarts
+            };
+        }
     }
 }

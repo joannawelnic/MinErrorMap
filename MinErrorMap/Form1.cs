@@ -1,360 +1,745 @@
-﻿using System.Threading;
+﻿using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace MinErrorMap
 {
     public partial class Form1 : Form
     {
-        private MatrixGenerator _generator;
-        private int[,] _currentMatrix; // Przechowujemy aktualną macierz w pamięci
+        // ── Stan aplikacji ─────────────────────────────────────────────────
+        private MatrixGenerator _generator = new MatrixGenerator();
+        private int[,] _currentMatrix;
+        private int _knownErrors = 0;
+        private bool _isUpdatingGrid = false;
+
+        // ── Kontrola algorytmu (Tab 2) ─────────────────────────────────────
         private CancellationTokenSource _cts;
         private ManualResetEventSlim _pauseEvent;
         private bool _isPaused = false;
-        private bool _isUpdatingGrid = false; 
 
+        // ── Kontrola testów automatycznych (Tab 4) ─────────────────────────
+        private CancellationTokenSource _testCts;
+
+        // ── Kontrolki Tab 4 (budowane programowo) ──────────────────────────
+        private ComboBox cbTestParameter;
+        private TextBox txtTestValues;
+        private TextBox txtMatrixSizes;
+        private NumericUpDown numBaseMaxIter;
+        private NumericUpDown numBaseTenure;
+        private NumericUpDown numBaseRestarts;
+        private NumericUpDown numBasePerturbation;
+        private NumericUpDown numBaseNeighborhood;
+        private NumericUpDown numTestErrorPct;
+        private NumericUpDown numRepetitions;
+        private Button btnRunTests;
+        private Button btnStopTests;
+        private Button btnExportCsv;
+        private ProgressBar progressBarTests;
+        private Label lblTestStatus;
+        private DataGridView dgvTestResults;
+        private List<AggregatedResult> _lastTestResults;
+
+        // ══════════════════════════════════════════════════════════════════
         public Form1()
         {
             InitializeComponent();
-            _generator = new MatrixGenerator();
             dgvMatrix.CellFormatting += DgvMatrix_CellFormatting;
             dgvResults.CellFormatting += DgvMatrix_CellFormatting;
+            InitializeTestingTab();
         }
+
+        // ══════════════════════════════════════════════════════════════════
+        //  TAB 1 – Generator instancji
+        // ══════════════════════════════════════════════════════════════════
 
         private void btnGenerate_Click(object sender, EventArgs e)
         {
-            // Pobieranie danych od użytkownika z zabezpieczeniem przed pustymi/złymi wartościami
-            if (int.TryParse(numRows.Text, out int rows) &&
-                int.TryParse(numCols.Text, out int cols))
-            {
-                // Generujemy i wyświetlamy TYLKO idealny wzorzec
-                _currentMatrix = _generator.GenerateMatrix(rows, cols);
-                DisplayMatrixInGrid(dgvMatrix, _currentMatrix, rows, cols);
-            }
-            else
+            if (!int.TryParse(numRows.Value.ToString(), out int rows) ||
+                !int.TryParse(numCols.Value.ToString(), out int cols))
             {
                 MessageBox.Show("Wprowadź poprawne wartości dla wierszy i kolumn!");
+                return;
+            }
+            try
+            {
+                _currentMatrix = _generator.GenerateMatrix(rows, cols);
+                _knownErrors = 0;
+                UpdateKnownErrorsLabel("Znane błędy: 0 (brak błędów, macierz C1P)");
+                DisplayMatrixInGrid(dgvMatrix, _currentMatrix, rows, cols);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Błąd generowania: " + ex.Message);
             }
         }
 
-        // Metoda pomocnicza do rysowania macierzy w DataGridView
-        private void DisplayMatrixInGrid(DataGridView grid, int[,] matrix, int rows, int cols)
+        private void btnCreateManual_Click(object sender, EventArgs e)
         {
-            _isUpdatingGrid = true; // ← blokujemy event przed nadpisaniem
+            int rows = (int)numRows.Value;
+            int cols = (int)numCols.Value;
 
-            grid.Rows.Clear();
-            grid.Columns.Clear();
-
-            // Dodawanie kolumn do siatki
-            for (int i = 0; i < cols; i++)
-            {
-                grid.Columns.Add($"Col{i}", $"{i}");
-                grid.Columns[i].Width = 40; // Ustawienie szerokości kolumn
-            }
-
-            // Dodawanie wierszy i wypełnianie ich danymi
-            for (int i = 0; i < rows; i++)
-            {
-                grid.Rows.Add();
-                for (int j = 0; j < cols; j++)
-                {
-                    grid.Rows[i].Cells[j].Value = matrix[i, j];
-                }
-            }
-            _isUpdatingGrid = false;
+            _currentMatrix = _generator.CreateEmptyMatrix(rows, cols);
+            _knownErrors = 0;
+            UpdateKnownErrorsLabel("Ręczna macierz – kliknij komórki aby wpisać 1");
+            DisplayMatrixInGrid(dgvMatrix, _currentMatrix, rows, cols);
         }
 
         private void btnErrors_Click(object sender, EventArgs e)
         {
-            if (_currentMatrix == null) { MessageBox.Show("brak macierzy"); return; }
+            if (_currentMatrix == null) { MessageBox.Show("Najpierw wygeneruj lub wczytaj macierz."); return; }
 
-            if (int.TryParse(numErrors.Text, out int errors))
+            int errors = (int)numErrors.Value;
+            try
             {
-
                 _generator.ApplyErrors(_currentMatrix, errors);
-
-
+                _knownErrors = _generator.KnownErrors;
+                UpdateKnownErrorsLabel($"Znane błędy (introduced): {_knownErrors}  " +
+                    $"({100.0 * _knownErrors / (_currentMatrix.GetLength(0) * _currentMatrix.GetLength(1)):F1}% komórek)");
                 int rows = _currentMatrix.GetLength(0);
                 int cols = _currentMatrix.GetLength(1);
                 DisplayMatrixInGrid(dgvMatrix, _currentMatrix, rows, cols);
-
             }
-            else
+            catch (InvalidOperationException ex)
             {
-                MessageBox.Show("TryParse zwróciło false - wartość: " + numErrors.Text);
+                MessageBox.Show(ex.Message, "Za dużo błędów", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
         }
 
         private void btnShuffle_Click(object sender, EventArgs e)
         {
-            if (_currentMatrix != null)
-            {
-                _currentMatrix = _generator.ShuffleColumns(_currentMatrix);
-                DisplayMatrixInGrid(dgvMatrix, _currentMatrix, _currentMatrix.GetLength(0), _currentMatrix.GetLength(1));
-            }
+            if (_currentMatrix == null) return;
+            _currentMatrix = _generator.ShuffleColumns(_currentMatrix);
+            DisplayMatrixInGrid(dgvMatrix, _currentMatrix,
+                _currentMatrix.GetLength(0), _currentMatrix.GetLength(1));
         }
-
-        // Zapis do pliku
 
         private void btnSave_Click(object sender, EventArgs e)
         {
-            if (_currentMatrix == null)
+            if (_currentMatrix == null) { MessageBox.Show("Nie ma macierzy do zapisania!"); return; }
+
+            using var sfd = new SaveFileDialog
             {
-                MessageBox.Show("Nie ma macierzy do zapisania!");
-                return;
-            }
+                Filter = "Plik tekstowy (*.txt)|*.txt",
+                Title = "Zapisz instancję macierzy"
+            };
+            if (sfd.ShowDialog() != DialogResult.OK) return;
 
-            // Najpierw pobieramy ewentualne ręczne zmiany z tabeli!
-            //SyncMatrixWithGrid();
-
-            // Otwieramy okno dialogowe do wyboru miejsca zapisu
-            SaveFileDialog sfd = new SaveFileDialog();
-            sfd.Filter = "Plik tekstowy (*.txt)|*.txt";
-            sfd.Title = "Zapisz instancję macierzy";
-
-            if (sfd.ShowDialog() == DialogResult.OK)
+            int rows = _currentMatrix.GetLength(0);
+            int cols = _currentMatrix.GetLength(1);
+            using var sw = new StreamWriter(sfd.FileName);
+            // Pierwsza linia: metadata
+            sw.WriteLine($"# rows={rows} cols={cols} knownErrors={_knownErrors}");
+            for (int i = 0; i < rows; i++)
             {
-                int rows = _currentMatrix.GetLength(0);
-                int cols = _currentMatrix.GetLength(1);
-
-                // Używamy StreamWriter do zapisu linijka po linijce
-                using (StreamWriter sw = new StreamWriter(sfd.FileName))
-                {
-                    for (int i = 0; i < rows; i++)
-                    {
-                        string[] rowValues = new string[cols];
-
-                        for (int j = 0; j < cols; j++)
-                        {
-                            rowValues[j] = _currentMatrix[i, j].ToString();
-                        }
-                        // Łączymy liczby spacją i zapisujemy wiersz
-                        sw.WriteLine(string.Join(" ", rowValues));
-                    }
-                }
-                MessageBox.Show("Macierz została pomyślnie zapisana!", "Sukces", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                var parts = new string[cols];
+                for (int j = 0; j < cols; j++) parts[j] = _currentMatrix[i, j].ToString();
+                sw.WriteLine(string.Join(" ", parts));
             }
+            MessageBox.Show("Macierz zapisana.", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void btnLoad_Click(object sender, EventArgs e)
         {
-            // Otwieramy okno dialogowe do wyboru pliku
-            OpenFileDialog ofd = new OpenFileDialog();
-            ofd.Filter = "Plik tekstowy (*.txt)|*.txt";
-            ofd.Title = "Wczytaj instancję macierzy";
-
-            if (ofd.ShowDialog() == DialogResult.OK)
+            using var ofd = new OpenFileDialog
             {
-                // Wczytujemy wszystkie linie tekstu z pliku
-                string[] lines = File.ReadAllLines(ofd.FileName);
+                Filter = "Plik tekstowy (*.txt)|*.txt",
+                Title = "Wczytaj instancję macierzy"
+            };
+            if (ofd.ShowDialog() != DialogResult.OK) return;
 
-                if (lines.Length == 0)
-                {
-                    MessageBox.Show("Wybrany plik jest pusty.");
-                    return;
-                }
+            string[] lines = File.ReadAllLines(ofd.FileName);
+            if (lines.Length == 0) { MessageBox.Show("Plik jest pusty."); return; }
 
-                // Ustalamy wymiary nowej macierzy
-                int rows = lines.Length;
-                // Dzielimy pierwszą linię po spacjach, aby sprawdzić ile jest kolumn
-                string[] firstRow = lines[0].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                int cols = firstRow.Length;
-
-                // Inicjalizujemy nową macierz
-
-                _currentMatrix = new int[rows, cols];
-                // Wypełniamy macierz danymi z pliku
-                for (int i = 0; i < rows; i++)
-                {
-                    string[] cells = lines[i].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    for (int j = 0; j < cols; j++)
-                    {
-                        // Odczytujemy liczbę, upewniając się, że nie wykraczamy poza zakres
-                        if (j < cells.Length && int.TryParse(cells[j], out int val) && (val == 0 || val == 1))
-                        {
-                            _currentMatrix[i, j] = val;
-                        }
-                    }
-                }
-
-                // Aktualizujemy pola tekstowe (TextBoxy) z wymiarami
-                numRows.Text = rows.ToString();
-                numCols.Text = cols.ToString();
-
-                // Wyświetlamy wczytaną macierz w siatce
-                DisplayMatrixInGrid(dgvMatrix, _currentMatrix, rows, cols);
+            // Parsuj opcjonalną linię metadanych
+            int startLine = 0;
+            _knownErrors = 0;
+            if (lines[0].StartsWith("#"))
+            {
+                var meta = lines[0];
+                var keMatch = System.Text.RegularExpressions.Regex.Match(meta, @"knownErrors=(\d+)");
+                if (keMatch.Success) _knownErrors = int.Parse(keMatch.Groups[1].Value);
+                startLine = 1;
             }
+
+            int dataRows = lines.Length - startLine;
+            if (dataRows <= 0) { MessageBox.Show("Brak danych."); return; }
+
+            string[] firstRow = lines[startLine].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            int cols = firstRow.Length;
+            _currentMatrix = new int[dataRows, cols];
+
+            for (int i = 0; i < dataRows; i++)
+            {
+                string[] cells = lines[startLine + i].Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                for (int j = 0; j < cols; j++)
+                {
+                    if (j < cells.Length && int.TryParse(cells[j], out int val) && (val == 0 || val == 1))
+                        _currentMatrix[i, j] = val;
+                }
+            }
+
+            numRows.Value = dataRows;
+            numCols.Value = cols;
+            DisplayMatrixInGrid(dgvMatrix, _currentMatrix, dataRows, cols);
+
+            // Oblicz błędy bieżącej macierzy funkcją celu (permutacja tożsamościowa)
+            var ts = new TabuSearchAlgorithm();
+            int[] id = new int[cols];
+            for (int j = 0; j < cols; j++) id[j] = j;
+            int calcErrors = ts.CalculateObjectiveFunction(_currentMatrix, id);
+
+            if (_knownErrors > 0)
+                UpdateKnownErrorsLabel($"Znane błędy (z pliku): {_knownErrors}  |  f.celu (tożs.): {calcErrors}");
+            else
+                UpdateKnownErrorsLabel($"Błędy f.celu (permutacja tożsamościowa): {calcErrors}");
         }
 
         private void dgvMatrix_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
-            if (_isUpdatingGrid) return; // ← ignorujemy eventy podczas rysowania
+            if (_isUpdatingGrid) return;
+            if (_currentMatrix == null || e.RowIndex < 0 || e.ColumnIndex < 0) return;
 
-            // 1. Zabezpieczenie: Sprawdzamy, czy macierz istnieje i czy zmiana nie dotyczy nagłówków (indeks -1)
-            if (_currentMatrix != null && e.RowIndex >= 0 && e.ColumnIndex >= 0)
+            var cellValue = dgvMatrix.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
+            if (int.TryParse(cellValue?.ToString(), out int val) && (val == 0 || val == 1))
             {
-                // 2. Pobieramy wpisaną wartość z konkretnej, zmienionej komórki
-                var cellValue = dgvMatrix.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
+                _currentMatrix[e.RowIndex, e.ColumnIndex] = val;
 
-                // 3. Sprawdzamy, czy wpisano poprawną liczbę - i sprawdza czy jest to 0 lub 1
-                if (int.TryParse(cellValue?.ToString(), out int val) && (val == 0 || val == 1))
-                {
-                    // 4. Aktualizujemy tylko to jedno konkretne pole w naszej tablicy w pamięci!
-                    _currentMatrix[e.RowIndex, e.ColumnIndex] = val;
-                }
+                // Przelicz błędy po ręcznej zmianie
+                var ts = new TabuSearchAlgorithm();
+                int cols = _currentMatrix.GetLength(1);
+                int[] id = new int[cols];
+                for (int j = 0; j < cols; j++) id[j] = j;
+                int calcErrors = ts.CalculateObjectiveFunction(_currentMatrix, id);
+                UpdateKnownErrorsLabel($"Błędy f.celu (po edycji): {calcErrors}");
             }
         }
 
-        // --- SEKCJA TABU SEARCH I WYKRESU ---
+        // ══════════════════════════════════════════════════════════════════
+        //  TAB 2 – Tabu Search
+        // ══════════════════════════════════════════════════════════════════
 
-        // Ta metoda będzie naszym delegatem wywoływanym przez algorytm w tle
-        private void UpdateProgressUI(int iteration, int bestScore)
+        private void UpdateProgressUI(ProgressInfo info)
         {
-            // --- NOWE ZABEZPIECZENIE: Jeśli wciśnięto STOP, ignorujemy wszelkie zaległe komunikaty! ---
             if (_cts != null && _cts.IsCancellationRequested) return;
-
-            // Zabezpieczenie wielowątkowe: Jeśli ta metoda jest wywoływana z innego wątku niż główny,
-            // prosimy formularz (Invoke), aby wykonał ją u siebie bezpiecznie.
             if (this.InvokeRequired)
             {
-                this.Invoke(new Action<int, int>(UpdateProgressUI), iteration, bestScore);
-                return; // Zatrzymujemy wykonanie w wątku w tle
+                this.Invoke(new Action<ProgressInfo>(UpdateProgressUI), info);
+                return;
             }
 
-            // --- Ten kod wykonuje się już BEZPIECZNIE w głównym wątku ---
+            // Wykres
+            chartProgress.Series[0].Points.AddXY(info.TotalIterations, info.BestScore);
 
-            // Dodajemy nowy punkt do naszego wykresu na osi X (iteracja) i osi Y (wynik funkcji celu)
-            chartProgress.Series[0].Points.AddXY(iteration, bestScore);
+            // Status
+            double impPct = info.InitialScore > 0
+                ? (info.InitialScore - info.BestScore) * 100.0 / info.InitialScore
+                : 0;
+            lblStatus.Text = $"Iter: {info.TotalIterations}  |  Najlepszy wynik: {info.BestScore}";
 
-            // Aktualizujemy tekst etykiety
-            lblStatus.Text = $"Iteracja: {iteration} | Najlepszy wynik (błędy): {bestScore}";
+            // Pasek postępu fazy (jak blisko stopu)
+            progressBarAlgorithm.Maximum = info.MaxIterationsWithoutImprovement;
+            progressBarAlgorithm.Value = Math.Min(info.IterationsWithoutImprovement,
+                                                     info.MaxIterationsWithoutImprovement);
+
+            // Etykiety szczegółowe
+            lblRestartInfo.Text = $"Restart: {info.CurrentRestart}/{info.TotalRestarts}";
+            lblTimeElapsed.Text = $"Czas: {info.ElapsedMs} ms";
+            lblImprovementPct.Text = $"Poprawa: {impPct:F1}%";
         }
 
         private async void btnStartSearch_Click(object sender, EventArgs e)
         {
-            _cts = new CancellationTokenSource();
-            _pauseEvent = new ManualResetEventSlim(true); // true = szlaban podniesiony na start
-            _isPaused = false;
-            btnPause.Text = "Pauza"; // Upewniamy się, że przycisk ma właściwy tekst na start
-
-            // 1. Zabezpieczenia i pobranie danych
             if (_currentMatrix == null)
             {
-                MessageBox.Show("Przejdź do pierwszej zakładki i wygeneruj macierz początkową!", "Brak danych");
+                MessageBox.Show("Przejdź do zakładki 1 i wygeneruj macierz!", "Brak danych");
                 return;
             }
-
-            if (!int.TryParse(txtMaxIter.Text, out int maxIter) || !int.TryParse(txtTabuTenure.Text, out int tenure))
+            if (!int.TryParse(txtMaxIter.Text, out int maxIter) ||
+                !int.TryParse(txtTabuTenure.Text, out int tenure))
             {
-                MessageBox.Show("Podaj poprawne parametry dla algorytmu (liczby całkowite)!");
+                MessageBox.Show("Podaj poprawne wartości Iteracji i Kadencji Tabu (liczby całkowite).");
                 return;
             }
 
-            // 2. Przygotowanie interfejsu i WYKRESU przed startem
+            int restarts = (int)numRestarts.Value;
+            int perturbation = (int)numPerturbation.Value;
+            double neighborPct = (double)numNeighborhoodPct.Value / 100.0;
+
+            _cts = new CancellationTokenSource();
+            _pauseEvent = new ManualResetEventSlim(true);
+            _isPaused = false;
+            btnPause.Text = "PAUZA";
+
             btnStartSearch.Enabled = false;
 
-            // --- KONFIGURACJA WYKRESU ---
+            // Wykres: reset
             chartProgress.Series[0].Points.Clear();
-            chartProgress.Series[0].Name = "Liczba błędów"; // Nazwa dla legendy
-            chartProgress.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine; // Zmiana na ciągłą linię (bardzo ważne!)
-            chartProgress.Series[0].BorderWidth = 2; // Grubsza, lepiej widoczna linia
-            chartProgress.Series[0].Color = System.Drawing.Color.Blue; // Kolor linii
-
-            // Opisy osi
+            chartProgress.Series[0].Name = "Błędy";
+            chartProgress.Series[0].ChartType = System.Windows.Forms.DataVisualization.Charting.SeriesChartType.FastLine;
+            chartProgress.Series[0].BorderWidth = 2;
+            chartProgress.Series[0].Color = System.Drawing.Color.DodgerBlue;
             chartProgress.ChartAreas[0].AxisX.Title = "Numer iteracji";
-            chartProgress.ChartAreas[0].AxisY.Title = "Wartość funkcji celu (błędy)";
-            // -----------------------------
+            chartProgress.ChartAreas[0].AxisY.Title = "Wartość funkcji celu";
 
-            TabuSearchAlgorithm tabuSearch = new TabuSearchAlgorithm();
-            int[] bestColumnOrder = null;
+            progressBarAlgorithm.Value = 0;
+            lblStatus.Text = "Uruchamianie...";
 
-            // 3. URUCHOMIENIE W TLE (Wielowątkowość)
+            var ts = new TabuSearchAlgorithm();
+            SearchResult result = null;
 
             await Task.Run(() =>
             {
-                // UWAGA: Przekazujemy _cts.Token oraz _pauseEvent do algorytmu!
-                bestColumnOrder = tabuSearch.RunTabuSearch(_currentMatrix, maxIter, tenure, UpdateProgressUI, _cts.Token, _pauseEvent);
+                result = ts.RunTabuSearch(
+                    _currentMatrix, maxIter, tenure, restarts, perturbation, neighborPct,
+                    UpdateProgressUI, _cts.Token, _pauseEvent);
             });
 
-
-            // 4. PO ZAKOŃCZENIU PRACY W TLE
-            // PO (poprawna kolejność):
-            if (bestColumnOrder != null)
+            if (result?.BestOrder != null)
             {
-                _currentMatrix = ReorderMatrixColumns(_currentMatrix, bestColumnOrder);
-
-                // Wpisujemy dane PRZED przełączeniem zakładki
-                DisplayMatrixInGrid(dgvResults, _currentMatrix, _currentMatrix.GetLength(0), _currentMatrix.GetLength(1));
-
-                // Dopiero teraz przełączamy zakładkę
-                tabControl1.SelectedTab = tabControl1.TabPages[2];
-
+                _currentMatrix = ReorderMatrixColumns(_currentMatrix, result.BestOrder);
+                DisplayMatrixInGrid(dgvResults, _currentMatrix,
+                    _currentMatrix.GetLength(0), _currentMatrix.GetLength(1));
+                tabControl1.SelectedTab = tabPage3;
                 dgvResults.Refresh();
+
+                int dist = result.BestScore - _knownErrors;
+                string extra = _knownErrors > 0
+                    ? $"  |  Odl. od opt.: {dist}  ({(dist * 100.0 / Math.Max(1, _knownErrors)):F0}%)"
+                    : "";
+                lblStatus.Text = _cts.IsCancellationRequested
+                    ? "PRZERWANO"
+                    : $"ZAKOŃCZONO – wynik: {result.BestScore}{extra}  czas: {result.ElapsedMs} ms";
             }
 
             btnStartSearch.Enabled = true;
-
-            if (!_cts.IsCancellationRequested)
-            {
-                lblStatus.Text += " -> ZAKOŃCZONO!";
-            }
-        }
-
-        // Funkcja pomocnicza, która tworzy nową macierz z odpowiednio ułożonymi kolumnami
-        private int[,] ReorderMatrixColumns(int[,] matrix, int[] columnOrder)
-        {
-            int rows = matrix.GetLength(0);
-            int cols = matrix.GetLength(1);
-            int[,] newMatrix = new int[rows, cols];
-
-            for (int i = 0; i < rows; i++)
-            {
-                for (int j = 0; j < cols; j++)
-                {
-                    newMatrix[i, j] = matrix[i, columnOrder[j]];
-                }
-            }
-            return newMatrix;
-        }
-
-        private void tabPage2_Click(object sender, EventArgs e)
-        {
-
         }
 
         private void btnPause_Click(object sender, EventArgs e)
         {
-            if (_pauseEvent == null) return; // Zabezpieczenie, jeśli algorytm nie działa
-
-            if (_isPaused)
-            {
-                // Wznawiamy działanie
-                _pauseEvent.Set(); // Podnosimy szlaban
-                btnPause.Text = "Pauza";
-            }
-            else
-            {
-                // Zatrzymujemy działanie
-                _pauseEvent.Reset(); // Opuszczamy szlaban
-                btnPause.Text = "Wznów";
-            }
+            if (_pauseEvent == null) return;
+            if (_isPaused) { _pauseEvent.Set(); btnPause.Text = "PAUZA"; }
+            else { _pauseEvent.Reset(); btnPause.Text = "WZNÓW"; }
             _isPaused = !_isPaused;
         }
 
         private void btnStop_Click(object sender, EventArgs e)
         {
-            if (_cts != null && !_cts.IsCancellationRequested)
-            {
-                _cts.Cancel(); // Wysyłamy sygnał do przerwania pracy
-                lblStatus.Text = "PRZERWANO PRZEZ UŻYTKOWNIKA!";
+            if (_cts == null || _cts.IsCancellationRequested) return;
+            _cts.Cancel();
+            _pauseEvent?.Set();
+            lblStatus.Text = "PRZERWANO PRZEZ UŻYTKOWNIKA";
+        }
 
-                // Odblokowujemy szlaban, na wypadek gdyby algorytm był zapauzowany (inaczej utknie na zawsze)
-                if (_pauseEvent != null) _pauseEvent.Set();
+        private void tabPage2_Click(object sender, EventArgs e) { }
+
+        // ══════════════════════════════════════════════════════════════════
+        //  TAB 4 – Testy automatyczne
+        // ══════════════════════════════════════════════════════════════════
+
+        private void InitializeTestingTab()
+        {
+            int lx = 10;  // left column X
+            int rx = 175; // right column X (controls)
+            int y = 10;
+
+            // ── Parametr do testowania ──
+            var lblParam = new Label { AutoSize = true, Location = new Point(lx, y), Text = "Parametr testowany:" };
+            cbTestParameter = new ComboBox
+            {
+                Location = new Point(lx, y + 20),
+                Size = new Size(280, 23),
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+            cbTestParameter.Items.AddRange(new string[]
+            {
+                "Kadencja Tabu (tabuTenure)",
+                "Maks. iteracji bez poprawy",
+                "Liczba restartów",
+                "Rozmiar perturbacji",
+                "Sąsiedztwo (%)",
+                "Rozmiar macierzy m×n",
+                "Procent błędów"
+            });
+            cbTestParameter.SelectedIndex = 0;
+            y += 52;
+
+            var lblVals = new Label { AutoSize = true, Location = new Point(lx, y), Text = "Wartości (np. 3,5,10,20):" };
+            txtTestValues = new TextBox { Location = new Point(lx, y + 20), Size = new Size(280, 23), Text = "3,5,10,20,30" };
+            y += 52;
+
+            var lblSizes = new Label { AutoSize = true, Location = new Point(lx, y), Text = "Rozmiary macierzy (np. 10x10,20x20):" };
+            txtMatrixSizes = new TextBox { Location = new Point(lx, y + 20), Size = new Size(280, 23), Text = "10x10,20x20,30x30,50x30,50x50" };
+            y += 52;
+
+            // ── Bazowe parametry ──
+            var lblBase = new Label
+            {
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                Location = new Point(lx, y),
+                Text = "── Parametry bazowe ──"
+            };
+            y += 22;
+
+            Func<string, int, int, int, (Label lbl, NumericUpDown num)> addParam = (txt, val, min, max) =>
+            {
+                var lbl = new Label { AutoSize = true, Location = new Point(lx, y + 3), Text = txt };
+                var num = new NumericUpDown
+                {
+                    Location = new Point(rx, y),
+                    Size = new Size(80, 23),
+                    Minimum = min,
+                    Maximum = max,
+                    Value = val
+                };
+                y += 28;
+                return (lbl, num);
+            };
+
+            (var lblBMaxIter, numBaseMaxIter) = addParam("Max iter. bez poprawy:", 100, 1, 5000);
+            (var lblBTenure, numBaseTenure) = addParam("Kadencja Tabu:", 5, 1, 100);
+            (var lblBRestarts, numBaseRestarts) = addParam("Restartów:", 3, 0, 50);
+            (var lblBPert, numBasePerturbation) = addParam("Perturbacja:", 3, 1, 100);
+            (var lblBNeigh, numBaseNeighborhood) = addParam("Sąsiedztwo (%):", 100, 1, 100);
+            (var lblBErr, numTestErrorPct) = addParam("Błędów (%):", 3, 1, 50);
+            (var lblBRep, numRepetitions) = addParam("Powtórzeń:", 10, 1, 50);
+            y += 6;
+
+            // ── Przyciski ──
+            btnRunTests = new Button { Location = new Point(lx, y), Size = new Size(130, 30), Text = "▶ Uruchom testy" };
+            btnStopTests = new Button { Location = new Point(lx + 140, y), Size = new Size(90, 30), Text = "■ Stop", Enabled = false };
+            y += 38;
+
+            progressBarTests = new ProgressBar { Location = new Point(lx, y), Size = new Size(280, 16) };
+            y += 22;
+
+            lblTestStatus = new Label
+            {
+                AutoSize = false,
+                Location = new Point(lx, y),
+                Size = new Size(280, 32),
+                Text = "Gotowy."
+            };
+            y += 38;
+
+            btnExportCsv = new Button
+            {
+                Location = new Point(lx, y),
+                Size = new Size(130, 28),
+                Text = "Eksportuj CSV",
+                Enabled = false
+            };
+
+            // ── DataGridView wyników ──
+            dgvTestResults = new DataGridView
+            {
+                Location = new Point(310, 10),
+                Size = new Size(650, 520),
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells,
+                ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize
+            };
+
+            // Dodaj kontrolki do Tab 4
+            tabPage4.Controls.AddRange(new Control[]
+            {
+                lblParam, cbTestParameter,
+                lblVals, txtTestValues,
+                lblSizes, txtMatrixSizes,
+                lblBase,
+                lblBMaxIter,  numBaseMaxIter,
+                lblBTenure,   numBaseTenure,
+                lblBRestarts, numBaseRestarts,
+                lblBPert,     numBasePerturbation,
+                lblBNeigh,    numBaseNeighborhood,
+                lblBErr,      numTestErrorPct,
+                lblBRep,      numRepetitions,
+                btnRunTests, btnStopTests,
+                progressBarTests, lblTestStatus,
+                btnExportCsv,
+                dgvTestResults
+            });
+
+            // Eventy
+            btnRunTests.Click += btnRunTests_Click;
+            btnStopTests.Click += (s, e) => _testCts?.Cancel();
+            btnExportCsv.Click += btnExportCsv_Click;
+        }
+
+        private async void btnRunTests_Click(object sender, EventArgs e)
+        {
+            _testCts = new CancellationTokenSource();
+            btnRunTests.Enabled = false;
+            btnStopTests.Enabled = true;
+            btnExportCsv.Enabled = false;
+            dgvTestResults.Rows.Clear();
+            dgvTestResults.Columns.Clear();
+            progressBarTests.Value = 0;
+
+            var configs = BuildTestConfigs();
+            if (configs == null || configs.Count == 0)
+            {
+                MessageBox.Show("Nie udało się zbudować konfiguracji testów. Sprawdź wartości.");
+                btnRunTests.Enabled = true;
+                btnStopTests.Enabled = false;
+                return;
+            }
+
+            int reps = (int)numRepetitions.Value;
+            progressBarTests.Maximum = configs.Count * reps;
+            lblTestStatus.Text = $"Uruchamiam {configs.Count} konfiguracji × {reps} powtórzeń…";
+
+            List<AggregatedResult> results = null;
+            var tester = new AutomatedTester();
+
+            await Task.Run(() =>
+            {
+                results = tester.RunTestSeries(configs, reps,
+                    (done, total, msg) =>
+                    {
+                        this.Invoke((Action)(() =>
+                        {
+                            progressBarTests.Value = Math.Min(done, progressBarTests.Maximum);
+                            lblTestStatus.Text = msg;
+                        }));
+                    },
+                    _testCts.Token);
+            });
+
+            _lastTestResults = results;
+            if (results != null && results.Count > 0)
+                DisplayTestResults(results);
+
+            lblTestStatus.Text = _testCts.IsCancellationRequested
+                ? $"Przerwano. Zebrano {results?.Count ?? 0} wyników."
+                : $"Zakończono. {results?.Count ?? 0} konfiguracji.";
+
+            btnRunTests.Enabled = true;
+            btnStopTests.Enabled = false;
+            btnExportCsv.Enabled = results != null && results.Count > 0;
+        }
+
+        /// <summary>
+        /// Buduje listę TestConfig na podstawie wybranego parametru i podanych wartości.
+        /// </summary>
+        private List<TestConfig> BuildTestConfigs()
+        {
+            var configs = new List<TestConfig>();
+            string param = cbTestParameter.SelectedItem?.ToString() ?? "";
+
+            int baseMaxIter = (int)numBaseMaxIter.Value;
+            int baseTenure = (int)numBaseTenure.Value;
+            int baseRest = (int)numBaseRestarts.Value;
+            int basePert = (int)numBasePerturbation.Value;
+            double baseNeigh = (double)numBaseNeighborhood.Value / 100.0;
+            double baseErrPct = (double)numTestErrorPct.Value / 100.0;
+
+            // Parsuj rozmiary macierzy (zawsze)
+            var sizes = new List<(int r, int c)>();
+            foreach (var s in txtMatrixSizes.Text.Split(','))
+            {
+                var parts = s.Trim().ToLower().Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int r) && int.TryParse(parts[1], out int c))
+                    sizes.Add((r, c));
+            }
+            if (sizes.Count == 0) sizes.Add((20, 20));
+
+            // Parsuj testowane wartości
+            var vals = new List<double>();
+            foreach (var v in txtTestValues.Text.Split(','))
+                if (double.TryParse(v.Trim(), System.Globalization.NumberStyles.Any,
+                    System.Globalization.CultureInfo.InvariantCulture, out double d))
+                    vals.Add(d);
+            if (vals.Count == 0) return configs;
+
+            var (defR, defC) = sizes[0]; // domyślny rozmiar dla testów parametrycznych
+
+            foreach (var val in vals)
+            {
+                int tenure = baseTenure;
+                int maxIter = baseMaxIter;
+                int restarts = baseRest;
+                int pert = basePert;
+                double neigh = baseNeigh;
+                double errPct = baseErrPct;
+                int rows = defR, cols = defC;
+                string label;
+
+                switch (param)
+                {
+                    case var p when p.StartsWith("Kadencja"):
+                        tenure = (int)val;
+                        label = $"tenure={tenure}";
+                        configs.Add(MakeConfig(label, rows, cols, errPct, tenure, maxIter, restarts, pert, neigh));
+                        break;
+                    case var p when p.StartsWith("Maks."):
+                        maxIter = (int)val;
+                        label = $"maxIter={maxIter}";
+                        configs.Add(MakeConfig(label, rows, cols, errPct, tenure, maxIter, restarts, pert, neigh));
+                        break;
+                    case var p when p.StartsWith("Liczba rest"):
+                        restarts = (int)val;
+                        label = $"restarts={restarts}";
+                        configs.Add(MakeConfig(label, rows, cols, errPct, tenure, maxIter, restarts, pert, neigh));
+                        break;
+                    case var p when p.StartsWith("Rozmiar pert"):
+                        pert = (int)val;
+                        label = $"pert={pert}";
+                        configs.Add(MakeConfig(label, rows, cols, errPct, tenure, maxIter, restarts, pert, neigh));
+                        break;
+                    case var p when p.StartsWith("Sąsiedztwo"):
+                        neigh = val / 100.0;
+                        label = $"neigh={val}%";
+                        configs.Add(MakeConfig(label, rows, cols, errPct, tenure, maxIter, restarts, pert, neigh));
+                        break;
+                    case var p when p.StartsWith("Procent"):
+                        errPct = val / 100.0;
+                        label = $"err={val}%";
+                        configs.Add(MakeConfig(label, rows, cols, errPct, tenure, maxIter, restarts, pert, neigh));
+                        break;
+                    case var p when p.StartsWith("Rozmiar mac"):
+                        // W trybie "Rozmiar macierzy" iterujemy po sizes, wartości w txtTestValues ignorujemy
+                        // (zamiast tego używamy txtMatrixSizes)
+                        break;
+                }
+            }
+
+            // Specjalny tryb: testowanie rozmiarów macierzy
+            if (param.StartsWith("Rozmiar mac"))
+            {
+                foreach (var (r, c) in sizes)
+                {
+                    string label = $"{r}x{c}";
+                    configs.Add(MakeConfig(label, r, c, baseErrPct, baseTenure, baseMaxIter,
+                        baseRest, basePert, baseNeigh));
+                }
+            }
+
+            return configs;
+        }
+
+        private static TestConfig MakeConfig(string label, int r, int c, double errPct,
+            int tenure, int maxIter, int restarts, int pert, double neigh) =>
+            new TestConfig
+            {
+                Label = label,
+                Rows = r,
+                Cols = c,
+                ErrorPercent = errPct,
+                TabuTenure = tenure,
+                MaxIterations = maxIter,
+                Restarts = restarts,
+                PerturbationSize = pert,
+                NeighborhoodPct = neigh
+            };
+
+        private void DisplayTestResults(List<AggregatedResult> results)
+        {
+            dgvTestResults.Columns.Clear();
+            dgvTestResults.Rows.Clear();
+
+            string[] cols = {
+                "Opis", "m", "n", "Zn.błędy", "Błędy%",
+                "Tenure", "MaxIter", "Restarts", "Pert.", "Sąs.%",
+                "Powt.", "Śr.Wynik", "Std.Dev", "Min", "Max",
+                "Śr.Odl.Opt", "Śr.Błąd%", "Śr.Iter", "Śr.Czas[ms]"
+            };
+            foreach (var col in cols)
+                dgvTestResults.Columns.Add(col, col);
+
+            foreach (var r in results)
+            {
+                dgvTestResults.Rows.Add(
+                    r.Label, r.Rows, r.Cols, r.KnownErrors, $"{r.ErrorPct:F1}%",
+                    r.TabuTenure, r.MaxIterations, r.Restarts, r.PerturbationSize, r.NeighborhoodPct,
+                    r.Repetitions, r.AvgScore, r.StdDev, r.BestScore, r.WorstScore,
+                    r.AvgDistFromOpt, $"{r.AvgRelErrPct:F1}%", r.AvgIterations, r.AvgTimeMs
+                );
             }
         }
+
+        private void btnExportCsv_Click(object sender, EventArgs e)
+        {
+            if (_lastTestResults == null || _lastTestResults.Count == 0)
+            {
+                MessageBox.Show("Brak wyników do eksportu.");
+                return;
+            }
+
+            using var sfd = new SaveFileDialog
+            {
+                Filter = "CSV (*.csv)|*.csv",
+                FileName = "wyniki_testow.csv",
+                Title = "Eksportuj wyniki do CSV"
+            };
+            if (sfd.ShowDialog() != DialogResult.OK) return;
+
+            var sb = new StringBuilder();
+            sb.AppendLine("Opis,m,n,ZnaneBłędy,Błędy%,Tenure,MaxIter,Restarts,Pert,Sąs%," +
+                          "Powt,ŚrWynik,StdDev,Min,Max,ŚrOdlOpt,ŚrBłąd%,ŚrIter,ŚrCzasMs");
+            foreach (var r in _lastTestResults)
+            {
+                sb.AppendLine(
+                    $"{r.Label},{r.Rows},{r.Cols},{r.KnownErrors},{r.ErrorPct:F1}," +
+                    $"{r.TabuTenure},{r.MaxIterations},{r.Restarts},{r.PerturbationSize},{r.NeighborhoodPct}," +
+                    $"{r.Repetitions},{r.AvgScore},{r.StdDev},{r.BestScore},{r.WorstScore}," +
+                    $"{r.AvgDistFromOpt},{r.AvgRelErrPct:F1},{r.AvgIterations},{r.AvgTimeMs}");
+            }
+
+            File.WriteAllText(sfd.FileName, sb.ToString(), Encoding.UTF8);
+            MessageBox.Show($"Eksportowano {_lastTestResults.Count} wierszy.", "CSV", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        // ══════════════════════════════════════════════════════════════════
+        //  Pomocnicze
+        // ══════════════════════════════════════════════════════════════════
+
+        private void DisplayMatrixInGrid(DataGridView grid, int[,] matrix, int rows, int cols)
+        {
+            _isUpdatingGrid = true;
+            grid.Rows.Clear();
+            grid.Columns.Clear();
+
+            for (int i = 0; i < cols; i++)
+            {
+                grid.Columns.Add($"Col{i}", $"{i}");
+                grid.Columns[i].Width = 38;
+            }
+            for (int i = 0; i < rows; i++)
+            {
+                grid.Rows.Add();
+                for (int j = 0; j < cols; j++)
+                    grid.Rows[i].Cells[j].Value = matrix[i, j];
+            }
+            _isUpdatingGrid = false;
+        }
+
+        private int[,] ReorderMatrixColumns(int[,] matrix, int[] columnOrder)
+        {
+            int rows = matrix.GetLength(0);
+            int cols = matrix.GetLength(1);
+            int[,] newMatrix = new int[rows, cols];
+            for (int i = 0; i < rows; i++)
+                for (int j = 0; j < cols; j++)
+                    newMatrix[i, j] = matrix[i, columnOrder[j]];
+            return newMatrix;
+        }
+
+        private void UpdateKnownErrorsLabel(string text)
+        {
+            lblKnownErrors.Text = text;
+        }
+
         private void DgvMatrix_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
         {
             if (e.Value == null) return;
-
             if (e.Value.ToString() == "1")
             {
                 e.CellStyle.BackColor = Color.LightGreen;
@@ -365,11 +750,6 @@ namespace MinErrorMap
                 e.CellStyle.BackColor = Color.LightPink;
                 e.CellStyle.ForeColor = Color.Black;
             }
-        }
-
-        private void lblStatus_Click(object sender, EventArgs e)
-        {
-
         }
     }
 }
