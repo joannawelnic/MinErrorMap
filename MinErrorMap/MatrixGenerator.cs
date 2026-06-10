@@ -1,158 +1,161 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Security.Policy;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MinErrorMap
 {
     public class MatrixGenerator
     {
-        // Używamy jednego obiektu Random dla całej klasy, aby losowania były poprawne
         private Random _random = new Random();
-        private int nRows;
-        private int nCols;
+        private int _nRows;
+        private int _nCols;
 
         /// <summary>
-        /// Generuje macierz z ukrytym rozwiązaniem optymalnym (C1P) i błędami.
+        /// Liczba rzeczywiście wprowadzonych błędów do macierzy.
+        /// Stanowi dolną granicę wartości optimum po przetasowaniu kolumn.
+        /// </summary>
+        public int KnownErrors { get; private set; } = 0;
+
+        /// <summary>
+        /// Generuje losową macierz binarną spełniającą własność C1P (consecutive ones property).
+        /// Każdy wiersz ma ciągły blok jedynek o długości co najmniej 2.
+        /// Gwarantuje brak kolumn złożonych wyłącznie z zer.
         /// </summary>
         public int[,] GenerateMatrix(int rows, int cols)
         {
-            nRows = rows;
-            nCols = cols;
-
-            // Zabezpieczenie na wypadek wpisania np. 1 kolumny przez użytkownika
             if (cols < 2)
-            {
-                throw new ArgumentException("Aby spełnić warunek min. 2 jedynek, macierz musi mieć co najmniej 2 kolumny.");
-            }
+                throw new ArgumentException("Macierz musi mieć co najmniej 2 kolumny.");
 
-            int[,] matrix = new int[rows, cols];
-            bool isValid = false; // Flaga sprawdzająca, czy macierz jest poprawna
+            _nRows = rows;
+            _nCols = cols;
+            KnownErrors = 0;
 
-            // Powtarzamy generowanie, dopóki nie uzyskamy macierzy bez pustych kolumn
-            while (!isValid)
+            int[,] matrix;
+            bool isValid;
+
+            do
             {
-                matrix = new int[rows, cols]; // Tworzymy nową, czystą macierz
+                matrix = new int[rows, cols];
+                isValid = true;
 
                 for (int i = 0; i < rows; i++)
                 {
-                    // Losujemy początek, ale upewniamy się, że zostaje miejsce na min. 2 jedynki
+                    // Start bloku: 0 do cols-2 (zostaje miejsce na min. 2 jedynki)
                     int start = _random.Next(0, cols - 1);
-
-                    // Długość bloku to minimum 2, a maksimum to ile zostało do końca wiersza
+                    // Długość bloku: min 2, max tyle ile zostało do końca
                     int length = _random.Next(2, cols - start + 1);
-
                     for (int j = start; j < start + length; j++)
-                    {
                         matrix[i, j] = 1;
-                    }
                 }
 
-                // Sprawdzamy, czy wygenerowana macierz ma jakieś puste kolumny (same zera)
-                isValid = true; // Zakładamy na start, że jest ok
-                for (int j = 0; j < cols; j++)
+                // Walidacja: żadna kolumna nie może być złożona z samych zer
+                for (int j = 0; j < cols && isValid; j++)
                 {
-                    bool hasOneInColumn = false;
-                    for (int i = 0; i < rows; i++)
-                    {
-                        if (matrix[i, j] == 1)
-                        {
-                            hasOneInColumn = true;
-                            break; // Znaleźliśmy jedynkę, nie musimy dalej sprawdzać tej kolumny
-                        }
-                    }
-
-                    // Jeśli po przejrzeniu całego wiersza w tej kolumnie nie ma jedynki
-                    if (!hasOneInColumn)
-                    {
-                        isValid = false; // Macierz jest niepoprawna, pętla while uruchomi się ponownie
-                        break; // Przerywamy sprawdzanie kolejnych kolumn
-                    }
+                    bool hasOne = false;
+                    for (int i = 0; i < rows && !hasOne; i++)
+                        hasOne = matrix[i, j] == 1;
+                    if (!hasOne) isValid = false;
                 }
-            }
+            } while (!isValid);
+
             return matrix;
         }
 
-        // KROK 2: Wprowadza błędy do istniejącej macierzy
-        public void ApplyErrors(int[,] matrix, int errors)
+        /// <summary>
+        /// Tworzy pustą macierz (same zera) do ręcznego wypełnienia przez użytkownika.
+        /// </summary>
+        public int[,] CreateEmptyMatrix(int rows, int cols)
         {
-
-            int errorsApplied = 0;
-            int maxAttempts = errors * 200; // zabezpieczenie przed nieskończoną pętlą
-            int attempts = 0;
-
-            while (errorsApplied < errors && attempts < maxAttempts)
-            {
-                attempts++;
-                int r = _random.Next(0, nRows);
-                int c = _random.Next(0, nCols);
-
-                if (matrix[r, c] == 1)
-                {
-                    // 1→0 tylko gdy obie sąsiednie komórki to też 1 (środek bloku)
-                    bool leftIsOne = (c > 0) && matrix[r, c - 1] == 1;
-                    bool rightIsOne = (c < nCols - 1) && matrix[r, c + 1] == 1;
-
-                    if (leftIsOne && rightIsOne)
-                    {
-                        matrix[r, c] = 0;
-                        errorsApplied++;
-                    }
-                }
-                else
-                {
-                    // 0→1 tylko gdy żaden sąsiad nie jest 1 (izolowana pozycja)
-                    bool leftIsOne = (c > 0) && matrix[r, c - 1] == 1;
-                    bool rightIsOne = (c < nCols - 1) && matrix[r, c + 1] == 1;
-
-                    if (!leftIsOne && !rightIsOne)
-                    {
-                        matrix[r, c] = 1;
-                        errorsApplied++;
-                    }
-                }
-            }
-
-            // Informacja jeśli nie udało się wprowadzić wszystkich błędów
-            if (errorsApplied < errors)
-            {
-                // Możesz tu rzucić wyjątek, wyświetlić MessageBox, lub po prostu zalogować
-                System.Diagnostics.Debug.WriteLine(
-                    $"Uwaga: wprowadzono tylko {errorsApplied}/{errors} realnych błędów.");
-            }
+            _nRows = rows;
+            _nCols = cols;
+            KnownErrors = 0;
+            return new int[rows, cols];
         }
 
         /// <summary>
-        /// Zmienia losowo kolejność kolumn w macierzy.
+        /// Wprowadza DOKŁADNIE errorsRequested realnych błędów do macierzy C1P.
+        ///
+        /// Zasada błędu realnego (nie naruszającego struktury w wymyślny sposób):
+        ///   1→0 : tylko jeśli oba sąsiedzi (lewy i prawy) to 1 – środek bloku jedynek.
+        ///          Zamiana końca bloku 1→0 jedynie skraca blok, co nie jest prawdziwym błędem.
+        ///   0→1 : tylko jeśli żaden sąsiad nie jest 1 – izolowana pozycja.
+        ///          Zamiana zera 0→1 obok końca bloku jedynie ten blok rozszerza.
+        ///
+        /// Metoda pre-skanuje wszystkie dozwolone pozycje, tasuje je i stosuje pierwsze N.
+        /// Rzuca wyjątek jeśli macierz nie ma wystarczająco dużo dozwolonych pozycji.
         /// </summary>
-        // KROK 3: Tasuje kolumny istniejącej macierzy i zwraca nową
+        public void ApplyErrors(int[,] matrix, int errorsRequested)
+        {
+            _nRows = matrix.GetLength(0);
+            _nCols = matrix.GetLength(1);
+
+            // Zbierz wszystkie pozycje gdzie można wprowadzić realny błąd
+            var validPositions = new List<(int r, int c, int newVal)>();
+
+            for (int r = 0; r < _nRows; r++)
+            {
+                for (int c = 0; c < _nCols; c++)
+                {
+                    bool leftIsOne  = (c > 0)          && matrix[r, c - 1] == 1;
+                    bool rightIsOne = (c < _nCols - 1) && matrix[r, c + 1] == 1;
+
+                    if (matrix[r, c] == 1 && leftIsOne && rightIsOne)
+                    {
+                        // Środek bloku jedynek – zamiana 1→0 tworzy "dziurę" (realny błąd)
+                        validPositions.Add((r, c, 0));
+                    }
+                    else if (matrix[r, c] == 0 && !leftIsOne && !rightIsOne)
+                    {
+                        // Izolowana pozycja – zamiana 0→1 tworzy samotną jedynkę (realny błąd)
+                        validPositions.Add((r, c, 1));
+                    }
+                }
+            }
+
+            if (validPositions.Count < errorsRequested)
+                throw new InvalidOperationException(
+                    $"Można wprowadzić maksymalnie {validPositions.Count} realnych błędów " +
+                    $"do tej macierzy. Zmniejsz liczbę błędów lub zwiększ rozmiar macierzy.");
+
+            // Tasuj Fisherem-Yatesem i wybierz pierwsze errorsRequested pozycji
+            for (int i = validPositions.Count - 1; i > 0; i--)
+            {
+                int j = _random.Next(i + 1);
+                (validPositions[i], validPositions[j]) = (validPositions[j], validPositions[i]);
+            }
+
+            for (int k = 0; k < errorsRequested; k++)
+            {
+                var (r, c, newVal) = validPositions[k];
+                matrix[r, c] = newVal;
+            }
+
+            KnownErrors = errorsRequested;
+        }
+
+        /// <summary>
+        /// Tasuje kolumny macierzy algorytmem Fisher-Yates.
+        /// Zwraca nową macierz z przetasowanymi kolumnami.
+        /// </summary>
         public int[,] ShuffleColumns(int[,] originalMatrix)
         {
             int rows = originalMatrix.GetLength(0);
             int cols = originalMatrix.GetLength(1);
-            int[] colIndices = new int[cols];
 
+            int[] colIndices = new int[cols];
             for (int i = 0; i < cols; i++) colIndices[i] = i;
 
             for (int i = cols - 1; i > 0; i--)
             {
                 int j = _random.Next(i + 1);
-                int temp = colIndices[i];
-                colIndices[i] = colIndices[j];
-                colIndices[j] = temp;
+                (colIndices[i], colIndices[j]) = (colIndices[j], colIndices[i]);
             }
 
-            int[,] shuffledMatrix = new int[rows, cols];
+            int[,] shuffled = new int[rows, cols];
             for (int i = 0; i < rows; i++)
-            {
                 for (int j = 0; j < cols; j++)
-                {
-                    shuffledMatrix[i, j] = originalMatrix[i, colIndices[j]];
-                }
-            }
-            return shuffledMatrix;
+                    shuffled[i, j] = originalMatrix[i, colIndices[j]];
+
+            return shuffled;
         }
     }
 }
