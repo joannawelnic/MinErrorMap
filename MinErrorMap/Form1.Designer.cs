@@ -23,58 +23,65 @@ namespace MinErrorMap
                 new System.Windows.Forms.DataVisualization.Charting.Series();
 
             // ── Deklaracje ────────────────────────────────────────────────
-            tabControl1       = new TabControl();
+            tabControl1          = new TabControl();
             // Tab 1
-            tabPage1          = new TabPage();
-            btnLoad           = new Button();
-            btnSave           = new Button();
-            btnShuffle        = new Button();
-            btnErrors         = new Button();
-            dgvMatrix         = new DataGridView();
-            btnGenerate       = new Button();
-            btnCreateManual   = new Button();
-            label1            = new Label();
-            label2            = new Label();
-            label3            = new Label();
-            lblKnownErrors    = new Label();
-            numErrors         = new NumericUpDown();
-            numCols           = new NumericUpDown();
-            numRows           = new NumericUpDown();
+            tabPage1             = new TabPage();
+            btnLoad              = new Button();
+            btnSave              = new Button();
+            btnShuffle           = new Button();
+            btnErrors            = new Button();
+            dgvMatrix            = new DataGridView();
+            btnGenerate          = new Button();
+            btnCreateManual      = new Button();
+            label1               = new Label();
+            label2               = new Label();
+            label3               = new Label();
+            lblKnownErrors       = new Label();
+            numErrors            = new NumericUpDown();
+            numCols              = new NumericUpDown();
+            numRows              = new NumericUpDown();
             // Tab 2
-            tabPage2          = new TabPage();
-            chartProgress     = new System.Windows.Forms.DataVisualization.Charting.Chart();
-            lblStatus         = new Label();
-            btnStop           = new Button();
-            btnPause          = new Button();
-            btnStartSearch    = new Button();
-            label4            = new Label();
-            label5            = new Label();
-            label6            = new Label();
-            label7            = new Label();
-            label8            = new Label();
-            txtTabuTenure     = new TextBox();
-            txtMaxIter        = new TextBox();
-            numRestarts       = new NumericUpDown();
-            numPerturbation   = new NumericUpDown();
-            numNeighborhoodPct= new NumericUpDown();
+            tabPage2             = new TabPage();
+            chartProgress        = new System.Windows.Forms.DataVisualization.Charting.Chart();
+            lblStatus            = new Label();
+            btnStop              = new Button();
+            btnPause             = new Button();
+            btnStartSearch       = new Button();
+            label4               = new Label();
+            label5               = new Label();
+            label6               = new Label();
+            label7               = new Label();
+            label8               = new Label();
+            txtTabuTenure        = new TextBox();
+            txtMaxIter           = new TextBox();
+            numRestarts          = new NumericUpDown();
+            numPerturbation      = new NumericUpDown();
+            numNeighborhoodPct   = new NumericUpDown();
             progressBarAlgorithm = new ProgressBar();
-            lblRestartInfo    = new Label();
-            lblTimeElapsed    = new Label();
-            lblImprovementPct = new Label();
+            lblRestartInfo       = new Label();
+            lblTimeElapsed       = new Label();
+            lblImprovementPct    = new Label();
             // Tab 3
-            tabPage3          = new TabPage();
-            dgvResults        = new DataGridView();
-            gbSummary         = new GroupBox();
-            lblSumSize        = new Label();
-            lblSumKE          = new Label();
-            lblSumScore       = new Label();
-            lblSumRelErr      = new Label();
-            lblSumDist        = new Label();
-            lblSumIter        = new Label();
-            lblSumTime        = new Label();
+            tabPage3             = new TabPage();
+            dgvResults           = new DataGridView();
+            gbSummary            = new GroupBox();
+            lblCapSize           = new Label();
+            lblSumSize           = new Label();
+            lblCapKE             = new Label();
+            lblSumKE             = new Label();
+            lblCapScore          = new Label();
+            lblSumScore          = new Label();
+            lblCapRelErr         = new Label();
+            lblSumRelErr         = new Label();
+            lblCapDist           = new Label();
+            lblSumDist           = new Label();
+            lblCapIter           = new Label();
+            lblSumIter           = new Label();
+            lblCapTime           = new Label();
+            lblSumTime           = new Label();
             // Tab 4
-            tabPage4          = new TabPage();
-            backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
+            tabPage4             = new TabPage();
+            backgroundWorker1    = new System.ComponentModel.BackgroundWorker();
 
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
@@ -88,6 +95,7 @@ namespace MinErrorMap
             ((System.ComponentModel.ISupportInitialize)numPerturbation).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numNeighborhoodPct).BeginInit();
             tabPage3.SuspendLayout();
+            gbSummary.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvResults).BeginInit();
             SuspendLayout();
 
@@ -96,11 +104,11 @@ namespace MinErrorMap
             tabControl1.Controls.Add(tabPage2);
             tabControl1.Controls.Add(tabPage3);
             tabControl1.Controls.Add(tabPage4);
-            tabControl1.Location     = new Point(12, 12);
-            tabControl1.Name         = "tabControl1";
-            tabControl1.SelectedIndex= 0;
-            tabControl1.Size         = new Size(984, 581);
-            tabControl1.TabIndex     = 0;
+            tabControl1.Location      = new Point(12, 12);
+            tabControl1.Name          = "tabControl1";
+            tabControl1.SelectedIndex = 0;
+            tabControl1.Size          = new Size(984, 581);
+            tabControl1.TabIndex      = 0;
 
             // ── tabPage1 – Generator instancji ────────────────────────────
             tabPage1.Controls.Add(btnLoad);
@@ -126,10 +134,10 @@ namespace MinErrorMap
             tabPage1.UseVisualStyleBackColor = true;
 
             // label1 – wiersze
-            label1.AutoSize  = true;
-            label1.Location  = new Point(30, 64);
-            label1.Name      = "label1";
-            label1.Text      = "Liczba wierszy (m):";
+            label1.AutoSize = true;
+            label1.Location = new Point(30, 64);
+            label1.Name     = "label1";
+            label1.Text     = "Liczba wierszy (m):";
 
             // numRows
             numRows.Location = new Point(176, 62);
@@ -141,10 +149,10 @@ namespace MinErrorMap
             numRows.Value    = new decimal(new int[] { 20, 0, 0, 0 });
 
             // label2 – kolumny
-            label2.AutoSize  = true;
-            label2.Location  = new Point(30, 107);
-            label2.Name      = "label2";
-            label2.Text      = "Liczba kolumn (n):";
+            label2.AutoSize = true;
+            label2.Location = new Point(30, 107);
+            label2.Name     = "label2";
+            label2.Text     = "Liczba kolumn (n):";
 
             // numCols
             numCols.Location = new Point(176, 105);
@@ -156,10 +164,10 @@ namespace MinErrorMap
             numCols.Value    = new decimal(new int[] { 20, 0, 0, 0 });
 
             // label3 – błędy
-            label3.AutoSize  = true;
-            label3.Location  = new Point(30, 150);
-            label3.Name      = "label3";
-            label3.Text      = "Liczba błędów:";
+            label3.AutoSize = true;
+            label3.Location = new Point(30, 150);
+            label3.Name     = "label3";
+            label3.Text     = "Liczba błędów:";
 
             // numErrors
             numErrors.Location = new Point(176, 148);
@@ -178,7 +186,7 @@ namespace MinErrorMap
             btnGenerate.UseVisualStyleBackColor = true;
             btnGenerate.Click   += btnGenerate_Click;
 
-            // btnCreateManual – nowy przycisk
+            // btnCreateManual
             btnCreateManual.Location = new Point(33, 234);
             btnCreateManual.Name     = "btnCreateManual";
             btnCreateManual.Size     = new Size(144, 36);
@@ -196,14 +204,14 @@ namespace MinErrorMap
             btnErrors.UseVisualStyleBackColor = true;
             btnErrors.Click   += btnErrors_Click;
 
-            // lblKnownErrors – informacja o błędach bieżącej instancji
-            lblKnownErrors.AutoSize   = true;
-            lblKnownErrors.Font       = new Font("Segoe UI", 9F, FontStyle.Italic);
-            lblKnownErrors.ForeColor  = Color.DarkBlue;
-            lblKnownErrors.Location   = new Point(30, 330);
-            lblKnownErrors.Name       = "lblKnownErrors";
-            lblKnownErrors.Size       = new Size(260, 15);
-            lblKnownErrors.Text       = "Znane błędy instancji: —";
+            // lblKnownErrors
+            lblKnownErrors.AutoSize  = true;
+            lblKnownErrors.Font      = new Font("Segoe UI", 9F, FontStyle.Italic);
+            lblKnownErrors.ForeColor = Color.DarkBlue;
+            lblKnownErrors.Location  = new Point(30, 330);
+            lblKnownErrors.Name      = "lblKnownErrors";
+            lblKnownErrors.Size      = new Size(260, 15);
+            lblKnownErrors.Text      = "Znane błędy instancji: —";
 
             // btnShuffle
             btnShuffle.Location = new Point(33, 354);
@@ -233,14 +241,14 @@ namespace MinErrorMap
             btnLoad.Click   += btnLoad_Click;
 
             // dgvMatrix
-            dgvMatrix.AllowUserToAddRows         = false;
-            dgvMatrix.AllowUserToOrderColumns    = true;
-            dgvMatrix.ColumnHeadersHeightSizeMode= DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvMatrix.Location   = new Point(331, 64);
-            dgvMatrix.Name       = "dgvMatrix";
+            dgvMatrix.AllowUserToAddRows          = false;
+            dgvMatrix.AllowUserToOrderColumns     = true;
+            dgvMatrix.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvMatrix.Location        = new Point(331, 64);
+            dgvMatrix.Name            = "dgvMatrix";
             dgvMatrix.RowHeadersWidth = 62;
-            dgvMatrix.Size       = new Size(619, 465);
-            dgvMatrix.TabIndex   = 8;
+            dgvMatrix.Size            = new Size(619, 465);
+            dgvMatrix.TabIndex        = 8;
             dgvMatrix.CellValueChanged += dgvMatrix_CellValueChanged;
 
             // ── tabPage2 – Tabu Search ────────────────────────────────────
@@ -273,10 +281,10 @@ namespace MinErrorMap
             tabPage2.Click          += tabPage2_Click;
 
             // label5 – max iteracji
-            label5.AutoSize  = true;
-            label5.Location  = new Point(10, 27);
-            label5.Name      = "label5";
-            label5.Text      = "Iteracji bez poprawy:";
+            label5.AutoSize = true;
+            label5.Location = new Point(10, 27);
+            label5.Name     = "label5";
+            label5.Text     = "Iteracji bez poprawy:";
 
             // txtMaxIter
             txtMaxIter.Location = new Point(175, 24);
@@ -286,10 +294,10 @@ namespace MinErrorMap
             txtMaxIter.Text     = "100";
 
             // label4 – kadencja Tabu
-            label4.AutoSize  = true;
-            label4.Location  = new Point(10, 57);
-            label4.Name      = "label4";
-            label4.Text      = "Kadencja Tabu:";
+            label4.AutoSize = true;
+            label4.Location = new Point(10, 57);
+            label4.Name     = "label4";
+            label4.Text     = "Kadencja Tabu:";
 
             // txtTabuTenure
             txtTabuTenure.Location = new Point(175, 54);
@@ -299,10 +307,10 @@ namespace MinErrorMap
             txtTabuTenure.Text     = "5";
 
             // label6 – restartów
-            label6.AutoSize  = true;
-            label6.Location  = new Point(10, 87);
-            label6.Name      = "label6";
-            label6.Text      = "Liczba restartów:";
+            label6.AutoSize = true;
+            label6.Location = new Point(10, 87);
+            label6.Name     = "label6";
+            label6.Text     = "Liczba restartów:";
 
             // numRestarts
             numRestarts.Location = new Point(175, 84);
@@ -313,10 +321,10 @@ namespace MinErrorMap
             numRestarts.Value    = new decimal(new int[] { 3, 0, 0, 0 });
 
             // label7 – perturbacja
-            label7.AutoSize  = true;
-            label7.Location  = new Point(10, 117);
-            label7.Name      = "label7";
-            label7.Text      = "Perturbacja (swapów):";
+            label7.AutoSize = true;
+            label7.Location = new Point(10, 117);
+            label7.Name     = "label7";
+            label7.Text     = "Perturbacja (swapów):";
 
             // numPerturbation
             numPerturbation.Location = new Point(175, 114);
@@ -328,10 +336,10 @@ namespace MinErrorMap
             numPerturbation.Value    = new decimal(new int[] { 3, 0, 0, 0 });
 
             // label8 – sąsiedztwo
-            label8.AutoSize  = true;
-            label8.Location  = new Point(10, 147);
-            label8.Name      = "label8";
-            label8.Text      = "Sąsiedztwo (%):";
+            label8.AutoSize = true;
+            label8.Location = new Point(10, 147);
+            label8.Name     = "label8";
+            label8.Text     = "Sąsiedztwo (%):";
 
             // numNeighborhoodPct
             numNeighborhoodPct.Location = new Point(175, 144);
@@ -343,24 +351,24 @@ namespace MinErrorMap
             numNeighborhoodPct.Value    = new decimal(new int[] { 100, 0, 0, 0 });
 
             // progressBarAlgorithm
-            progressBarAlgorithm.Location  = new Point(10, 178);
-            progressBarAlgorithm.Name      = "progressBarAlgorithm";
-            progressBarAlgorithm.Size      = new Size(295, 18);
-            progressBarAlgorithm.TabIndex  = 10;
+            progressBarAlgorithm.Location = new Point(10, 178);
+            progressBarAlgorithm.Name     = "progressBarAlgorithm";
+            progressBarAlgorithm.Size     = new Size(295, 18);
+            progressBarAlgorithm.TabIndex = 10;
 
             // lblRestartInfo
-            lblRestartInfo.AutoSize  = true;
-            lblRestartInfo.Font      = new Font("Segoe UI", 9F);
-            lblRestartInfo.Location  = new Point(10, 202);
-            lblRestartInfo.Name      = "lblRestartInfo";
-            lblRestartInfo.Text      = "Restart: —";
+            lblRestartInfo.AutoSize = true;
+            lblRestartInfo.Font     = new Font("Segoe UI", 9F);
+            lblRestartInfo.Location = new Point(10, 202);
+            lblRestartInfo.Name     = "lblRestartInfo";
+            lblRestartInfo.Text     = "Restart: —";
 
             // lblTimeElapsed
-            lblTimeElapsed.AutoSize  = true;
-            lblTimeElapsed.Font      = new Font("Segoe UI", 9F);
-            lblTimeElapsed.Location  = new Point(120, 202);
-            lblTimeElapsed.Name      = "lblTimeElapsed";
-            lblTimeElapsed.Text      = "Czas: — ms";
+            lblTimeElapsed.AutoSize = true;
+            lblTimeElapsed.Font     = new Font("Segoe UI", 9F);
+            lblTimeElapsed.Location = new Point(120, 202);
+            lblTimeElapsed.Name     = "lblTimeElapsed";
+            lblTimeElapsed.Text     = "Czas: — ms";
 
             // lblImprovementPct
             lblImprovementPct.AutoSize  = true;
@@ -435,48 +443,138 @@ namespace MinErrorMap
             tabPage3.Text     = "Wyniki";
             tabPage3.UseVisualStyleBackColor = true;
 
-            dgvResults.AllowUserToAddRows        = false;
-            dgvResults.AllowUserToDeleteRows     = false;
+            // dgvResults
+            dgvResults.AllowUserToAddRows          = false;
+            dgvResults.AllowUserToDeleteRows       = false;
             dgvResults.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvResults.Location    = new Point(302, 26);
-            dgvResults.Name        = "dgvResults";
-            dgvResults.ReadOnly    = true;
-            dgvResults.Size        = new Size(645, 501);
-            dgvResults.TabIndex    = 0;
+            dgvResults.Location  = new Point(302, 26);
+            dgvResults.Name      = "dgvResults";
+            dgvResults.ReadOnly  = true;
+            dgvResults.Size      = new Size(645, 501);
+            dgvResults.TabIndex  = 0;
 
-            // ── gbSummary – panel podsumowania pojedynczego uruchomienia ──
-            gbSummary.Location  = new Point(6, 6);
-            gbSummary.Name      = "gbSummary";
-            gbSummary.Size      = new Size(286, 268);
-            gbSummary.TabStop   = false;
-            gbSummary.Text      = "Podsumowanie wyników";
-            gbSummary.Font      = new Font("Segoe UI", 9F, FontStyle.Bold);
+            // ── gbSummary ─────────────────────────────────────────────────
+            gbSummary.Controls.Add(lblCapSize);
+            gbSummary.Controls.Add(lblSumSize);
+            gbSummary.Controls.Add(lblCapKE);
+            gbSummary.Controls.Add(lblSumKE);
+            gbSummary.Controls.Add(lblCapScore);
+            gbSummary.Controls.Add(lblSumScore);
+            gbSummary.Controls.Add(lblCapRelErr);
+            gbSummary.Controls.Add(lblSumRelErr);
+            gbSummary.Controls.Add(lblCapDist);
+            gbSummary.Controls.Add(lblSumDist);
+            gbSummary.Controls.Add(lblCapIter);
+            gbSummary.Controls.Add(lblSumIter);
+            gbSummary.Controls.Add(lblCapTime);
+            gbSummary.Controls.Add(lblSumTime);
+            gbSummary.Font     = new Font("Segoe UI", 9F, FontStyle.Bold);
+            gbSummary.Location = new Point(6, 6);
+            gbSummary.Name     = "gbSummary";
+            gbSummary.Size     = new Size(286, 268);
+            gbSummary.TabIndex = 1;
+            gbSummary.TabStop  = false;
+            gbSummary.Text     = "Podsumowanie wyników";
 
-            Action<Label, Label, string, int> addSumRow = (cap, val, text, y) =>
-            {
-                cap.AutoSize  = true;
-                cap.Font      = new Font("Segoe UI", 9F);
-                cap.Location  = new Point(8, y);
-                cap.Text      = text;
-                val.AutoSize  = false;
-                val.Font      = new Font("Segoe UI", 10F, FontStyle.Bold);
-                val.ForeColor = Color.DarkBlue;
-                val.Location  = new Point(158, y - 2);
-                val.Size      = new Size(120, 20);
-                val.Text      = "—";
-                gbSummary.Controls.Add(cap);
-                gbSummary.Controls.Add(val);
-            };
+            // lblCapSize + lblSumSize (y=26)
+            lblCapSize.AutoSize = true;
+            lblCapSize.Font     = new Font("Segoe UI", 9F);
+            lblCapSize.Location = new Point(8, 26);
+            lblCapSize.Name     = "lblCapSize";
+            lblCapSize.Text     = "Rozmiar macierzy:";
+            lblSumSize.AutoSize  = false;
+            lblSumSize.Font      = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblSumSize.ForeColor = Color.DarkBlue;
+            lblSumSize.Location  = new Point(158, 24);
+            lblSumSize.Name      = "lblSumSize";
+            lblSumSize.Size      = new Size(120, 20);
+            lblSumSize.Text      = "—";
 
-            addSumRow(new Label(), lblSumSize,   "Rozmiar macierzy:",    26);
-            addSumRow(new Label(), lblSumKE,     "Znane błędy:",         58);
-            addSumRow(new Label(), lblSumScore,  "Wynik końcowy:",        90);
-            addSumRow(new Label(), lblSumRelErr, "Błąd względny:",       122);
-            addSumRow(new Label(), lblSumDist,   "Odległość od opt.:",   154);
-            addSumRow(new Label(), lblSumIter,   "Liczba iteracji:",     186);
-            addSumRow(new Label(), lblSumTime,   "Czas:",                218);
+            // lblCapKE + lblSumKE (y=58)
+            lblCapKE.AutoSize = true;
+            lblCapKE.Font     = new Font("Segoe UI", 9F);
+            lblCapKE.Location = new Point(8, 58);
+            lblCapKE.Name     = "lblCapKE";
+            lblCapKE.Text     = "Znane błędy:";
+            lblSumKE.AutoSize  = false;
+            lblSumKE.Font      = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblSumKE.ForeColor = Color.DarkBlue;
+            lblSumKE.Location  = new Point(158, 56);
+            lblSumKE.Name      = "lblSumKE";
+            lblSumKE.Size      = new Size(120, 20);
+            lblSumKE.Text      = "—";
 
-            // ── tabPage4 – Testy automatyczne (kontrolki budowane w Form1.cs) ──
+            // lblCapScore + lblSumScore (y=90)
+            lblCapScore.AutoSize = true;
+            lblCapScore.Font     = new Font("Segoe UI", 9F);
+            lblCapScore.Location = new Point(8, 90);
+            lblCapScore.Name     = "lblCapScore";
+            lblCapScore.Text     = "Wynik końcowy:";
+            lblSumScore.AutoSize  = false;
+            lblSumScore.Font      = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblSumScore.ForeColor = Color.DarkBlue;
+            lblSumScore.Location  = new Point(158, 88);
+            lblSumScore.Name      = "lblSumScore";
+            lblSumScore.Size      = new Size(120, 20);
+            lblSumScore.Text      = "—";
+
+            // lblCapRelErr + lblSumRelErr (y=122)
+            lblCapRelErr.AutoSize = true;
+            lblCapRelErr.Font     = new Font("Segoe UI", 9F);
+            lblCapRelErr.Location = new Point(8, 122);
+            lblCapRelErr.Name     = "lblCapRelErr";
+            lblCapRelErr.Text     = "Błąd względny:";
+            lblSumRelErr.AutoSize  = false;
+            lblSumRelErr.Font      = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblSumRelErr.ForeColor = Color.DarkBlue;
+            lblSumRelErr.Location  = new Point(158, 120);
+            lblSumRelErr.Name      = "lblSumRelErr";
+            lblSumRelErr.Size      = new Size(120, 20);
+            lblSumRelErr.Text      = "—";
+
+            // lblCapDist + lblSumDist (y=154)
+            lblCapDist.AutoSize = true;
+            lblCapDist.Font     = new Font("Segoe UI", 9F);
+            lblCapDist.Location = new Point(8, 154);
+            lblCapDist.Name     = "lblCapDist";
+            lblCapDist.Text     = "Odległość od opt.:";
+            lblSumDist.AutoSize  = false;
+            lblSumDist.Font      = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblSumDist.ForeColor = Color.DarkBlue;
+            lblSumDist.Location  = new Point(158, 152);
+            lblSumDist.Name      = "lblSumDist";
+            lblSumDist.Size      = new Size(120, 20);
+            lblSumDist.Text      = "—";
+
+            // lblCapIter + lblSumIter (y=186)
+            lblCapIter.AutoSize = true;
+            lblCapIter.Font     = new Font("Segoe UI", 9F);
+            lblCapIter.Location = new Point(8, 186);
+            lblCapIter.Name     = "lblCapIter";
+            lblCapIter.Text     = "Liczba iteracji:";
+            lblSumIter.AutoSize  = false;
+            lblSumIter.Font      = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblSumIter.ForeColor = Color.DarkBlue;
+            lblSumIter.Location  = new Point(158, 184);
+            lblSumIter.Name      = "lblSumIter";
+            lblSumIter.Size      = new Size(120, 20);
+            lblSumIter.Text      = "—";
+
+            // lblCapTime + lblSumTime (y=218)
+            lblCapTime.AutoSize = true;
+            lblCapTime.Font     = new Font("Segoe UI", 9F);
+            lblCapTime.Location = new Point(8, 218);
+            lblCapTime.Name     = "lblCapTime";
+            lblCapTime.Text     = "Czas:";
+            lblSumTime.AutoSize  = false;
+            lblSumTime.Font      = new Font("Segoe UI", 10F, FontStyle.Bold);
+            lblSumTime.ForeColor = Color.DarkBlue;
+            lblSumTime.Location  = new Point(158, 216);
+            lblSumTime.Name      = "lblSumTime";
+            lblSumTime.Size      = new Size(120, 20);
+            lblSumTime.Text      = "—";
+
+            // ── tabPage4 – Testy automatyczne ────────────────────────────
             tabPage4.Location = new Point(4, 24);
             tabPage4.Name     = "tabPage4";
             tabPage4.Padding  = new Padding(3);
@@ -506,8 +604,11 @@ namespace MinErrorMap
             ((System.ComponentModel.ISupportInitialize)numRestarts).EndInit();
             ((System.ComponentModel.ISupportInitialize)numPerturbation).EndInit();
             ((System.ComponentModel.ISupportInitialize)numNeighborhoodPct).EndInit();
-            tabPage3.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dgvResults).EndInit();
+            gbSummary.ResumeLayout(false);
+            gbSummary.PerformLayout();
+            tabPage3.ResumeLayout(false);
+            tabPage3.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -554,17 +655,23 @@ namespace MinErrorMap
         // ── Tab 3 ────────────────────────────────────────────────────────
         private TabPage       tabPage3;
         private DataGridView  dgvResults;
+        private GroupBox      gbSummary;
+        private Label         lblCapSize;
+        private Label         lblSumSize;
+        private Label         lblCapKE;
+        private Label         lblSumKE;
+        private Label         lblCapScore;
+        private Label         lblSumScore;
+        private Label         lblCapRelErr;
+        private Label         lblSumRelErr;
+        private Label         lblCapDist;
+        private Label         lblSumDist;
+        private Label         lblCapIter;
+        private Label         lblSumIter;
+        private Label         lblCapTime;
+        private Label         lblSumTime;
         // ── Tab 4 ────────────────────────────────────────────────────────
         private TabPage       tabPage4;
-        // Tab 3 – panel podsumowania
-        private GroupBox      gbSummary;
-        private Label         lblSumSize;
-        private Label         lblSumKE;
-        private Label         lblSumScore;
-        private Label         lblSumRelErr;
-        private Label         lblSumDist;
-        private Label         lblSumIter;
-        private Label         lblSumTime;
         // ── Misc ─────────────────────────────────────────────────────────
         private System.ComponentModel.BackgroundWorker backgroundWorker1;
     }
