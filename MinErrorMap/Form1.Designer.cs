@@ -3,16 +3,13 @@ namespace MinErrorMap
     partial class Form1
     {
         private System.ComponentModel.IContainer components = null;
-
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
                 components.Dispose();
             base.Dispose(disposing);
         }
-
         #region Windows Form Designer generated code
-
         private void InitializeComponent()
         {
             System.Windows.Forms.DataVisualization.Charting.ChartArea chartArea1 =
@@ -21,7 +18,6 @@ namespace MinErrorMap
                 new System.Windows.Forms.DataVisualization.Charting.Legend();
             System.Windows.Forms.DataVisualization.Charting.Series series1 =
                 new System.Windows.Forms.DataVisualization.Charting.Series();
-
             // ── Deklaracje ────────────────────────────────────────────────
             tabControl1          = new TabControl();
             // Tab 1
@@ -82,7 +78,6 @@ namespace MinErrorMap
             // Tab 4
             tabPage4             = new TabPage();
             backgroundWorker1    = new System.ComponentModel.BackgroundWorker();
-
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvMatrix).BeginInit();
@@ -98,7 +93,6 @@ namespace MinErrorMap
             gbSummary.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvResults).BeginInit();
             SuspendLayout();
-
             // ── tabControl1 ───────────────────────────────────────────────
             tabControl1.Controls.Add(tabPage1);
             tabControl1.Controls.Add(tabPage2);
@@ -109,7 +103,9 @@ namespace MinErrorMap
             tabControl1.SelectedIndex = 0;
             tabControl1.Size          = new Size(984, 581);
             tabControl1.TabIndex      = 0;
-
+            // Rozciągaj tabControl przy zmianie rozmiaru okna
+            tabControl1.Anchor = AnchorStyles.Top | AnchorStyles.Bottom
+                               | AnchorStyles.Left | AnchorStyles.Right;
             // ── tabPage1 – Generator instancji ────────────────────────────
             tabPage1.Controls.Add(btnLoad);
             tabPage1.Controls.Add(btnSave);
@@ -132,13 +128,11 @@ namespace MinErrorMap
             tabPage1.TabIndex        = 0;
             tabPage1.Text            = "Generator instancji";
             tabPage1.UseVisualStyleBackColor = true;
-
             // label1 – wiersze
             label1.AutoSize = true;
             label1.Location = new Point(30, 64);
             label1.Name     = "label1";
             label1.Text     = "Liczba wierszy (m):";
-
             // numRows
             numRows.Location = new Point(176, 62);
             numRows.Maximum  = new decimal(new int[] { 500, 0, 0, 0 });
@@ -147,13 +141,11 @@ namespace MinErrorMap
             numRows.Size     = new Size(120, 23);
             numRows.TabIndex = 1;
             numRows.Value    = new decimal(new int[] { 20, 0, 0, 0 });
-
             // label2 – kolumny
             label2.AutoSize = true;
             label2.Location = new Point(30, 107);
             label2.Name     = "label2";
             label2.Text     = "Liczba kolumn (n):";
-
             // numCols
             numCols.Location = new Point(176, 105);
             numCols.Maximum  = new decimal(new int[] { 500, 0, 0, 0 });
@@ -162,21 +154,21 @@ namespace MinErrorMap
             numCols.Size     = new Size(120, 23);
             numCols.TabIndex = 2;
             numCols.Value    = new decimal(new int[] { 20, 0, 0, 0 });
-
-            // label3 – błędy
+            // label3 – błędy %
             label3.AutoSize = true;
             label3.Location = new Point(30, 150);
             label3.Name     = "label3";
-            label3.Text     = "Liczba błędów:";
-
-            // numErrors
-            numErrors.Location = new Point(176, 148);
-            numErrors.Maximum  = new decimal(new int[] { 10000, 0, 0, 0 });
-            numErrors.Name     = "numErrors";
-            numErrors.Size     = new Size(120, 23);
-            numErrors.TabIndex = 3;
-            numErrors.Value    = new decimal(new int[] { 3, 0, 0, 0 });
-
+            label3.Text     = "Błędy (%):";
+            // numErrors – wartość procentowa (0.0 – 10.0, krok 0.5, domyślnie 3.0)
+            numErrors.DecimalPlaces = 1;
+            numErrors.Increment  = new decimal(new int[] { 5, 0, 0, 65536 });   // 0.5
+            numErrors.Location   = new Point(176, 148);
+            numErrors.Maximum    = new decimal(new int[] { 100, 0, 0, 65536 }); // 10.0
+            numErrors.Minimum    = new decimal(new int[] { 0, 0, 0, 0 });       // 0.0
+            numErrors.Name       = "numErrors";
+            numErrors.Size       = new Size(120, 23);
+            numErrors.TabIndex   = 3;
+            numErrors.Value      = new decimal(new int[] { 30, 0, 0, 65536 });  // 3.0
             // btnGenerate
             btnGenerate.Location = new Point(33, 188);
             btnGenerate.Name     = "btnGenerate";
@@ -185,7 +177,6 @@ namespace MinErrorMap
             btnGenerate.Text     = "Generuj macierz";
             btnGenerate.UseVisualStyleBackColor = true;
             btnGenerate.Click   += btnGenerate_Click;
-
             // btnCreateManual
             btnCreateManual.Location = new Point(33, 234);
             btnCreateManual.Name     = "btnCreateManual";
@@ -194,7 +185,6 @@ namespace MinErrorMap
             btnCreateManual.Text     = "Utwórz ręcznie";
             btnCreateManual.UseVisualStyleBackColor = true;
             btnCreateManual.Click   += btnCreateManual_Click;
-
             // btnErrors
             btnErrors.Location = new Point(33, 284);
             btnErrors.Name     = "btnErrors";
@@ -203,7 +193,6 @@ namespace MinErrorMap
             btnErrors.Text     = "Wprowadź błędy";
             btnErrors.UseVisualStyleBackColor = true;
             btnErrors.Click   += btnErrors_Click;
-
             // lblKnownErrors
             lblKnownErrors.AutoSize  = true;
             lblKnownErrors.Font      = new Font("Segoe UI", 9F, FontStyle.Italic);
@@ -212,7 +201,6 @@ namespace MinErrorMap
             lblKnownErrors.Name      = "lblKnownErrors";
             lblKnownErrors.Size      = new Size(260, 15);
             lblKnownErrors.Text      = "Znane błędy instancji: —";
-
             // btnShuffle
             btnShuffle.Location = new Point(33, 354);
             btnShuffle.Name     = "btnShuffle";
@@ -221,7 +209,6 @@ namespace MinErrorMap
             btnShuffle.Text     = "Przetasuj kolumny";
             btnShuffle.UseVisualStyleBackColor = true;
             btnShuffle.Click   += btnShuffle_Click;
-
             // btnSave
             btnSave.Location = new Point(33, 406);
             btnSave.Name     = "btnSave";
@@ -230,7 +217,6 @@ namespace MinErrorMap
             btnSave.Text     = "Zapisz do pliku";
             btnSave.UseVisualStyleBackColor = true;
             btnSave.Click   += btnSave_Click;
-
             // btnLoad
             btnLoad.Location = new Point(33, 448);
             btnLoad.Name     = "btnLoad";
@@ -239,8 +225,7 @@ namespace MinErrorMap
             btnLoad.Text     = "Wczytaj z pliku";
             btnLoad.UseVisualStyleBackColor = true;
             btnLoad.Click   += btnLoad_Click;
-
-            // dgvMatrix
+            // dgvMatrix – rozciąga się przy powiększaniu okna
             dgvMatrix.AllowUserToAddRows          = false;
             dgvMatrix.AllowUserToOrderColumns     = true;
             dgvMatrix.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
@@ -249,8 +234,9 @@ namespace MinErrorMap
             dgvMatrix.RowHeadersWidth = 62;
             dgvMatrix.Size            = new Size(619, 465);
             dgvMatrix.TabIndex        = 8;
+            dgvMatrix.Anchor          = AnchorStyles.Top | AnchorStyles.Bottom
+                                      | AnchorStyles.Left | AnchorStyles.Right;
             dgvMatrix.CellValueChanged += dgvMatrix_CellValueChanged;
-
             // ── tabPage2 – Tabu Search ────────────────────────────────────
             tabPage2.Controls.Add(chartProgress);
             tabPage2.Controls.Add(lblStatus);
@@ -279,39 +265,33 @@ namespace MinErrorMap
             tabPage2.Text            = "Tabu Search";
             tabPage2.UseVisualStyleBackColor = true;
             tabPage2.Click          += tabPage2_Click;
-
             // label5 – max iteracji
             label5.AutoSize = true;
             label5.Location = new Point(10, 27);
             label5.Name     = "label5";
             label5.Text     = "Iteracji bez poprawy:";
-
             // txtMaxIter
             txtMaxIter.Location = new Point(175, 24);
             txtMaxIter.Name     = "txtMaxIter";
             txtMaxIter.Size     = new Size(80, 23);
             txtMaxIter.TabIndex = 0;
             txtMaxIter.Text     = "100";
-
             // label4 – kadencja Tabu
             label4.AutoSize = true;
             label4.Location = new Point(10, 57);
             label4.Name     = "label4";
             label4.Text     = "Kadencja Tabu:";
-
             // txtTabuTenure
             txtTabuTenure.Location = new Point(175, 54);
             txtTabuTenure.Name     = "txtTabuTenure";
             txtTabuTenure.Size     = new Size(80, 23);
             txtTabuTenure.TabIndex = 1;
             txtTabuTenure.Text     = "5";
-
             // label6 – restartów
             label6.AutoSize = true;
             label6.Location = new Point(10, 87);
             label6.Name     = "label6";
             label6.Text     = "Liczba restartów:";
-
             // numRestarts
             numRestarts.Location = new Point(175, 84);
             numRestarts.Maximum  = new decimal(new int[] { 50, 0, 0, 0 });
@@ -319,13 +299,11 @@ namespace MinErrorMap
             numRestarts.Size     = new Size(80, 23);
             numRestarts.TabIndex = 2;
             numRestarts.Value    = new decimal(new int[] { 3, 0, 0, 0 });
-
             // label7 – perturbacja
             label7.AutoSize = true;
             label7.Location = new Point(10, 117);
             label7.Name     = "label7";
             label7.Text     = "Perturbacja (swapów):";
-
             // numPerturbation
             numPerturbation.Location = new Point(175, 114);
             numPerturbation.Maximum  = new decimal(new int[] { 200, 0, 0, 0 });
@@ -334,13 +312,11 @@ namespace MinErrorMap
             numPerturbation.Size     = new Size(80, 23);
             numPerturbation.TabIndex = 3;
             numPerturbation.Value    = new decimal(new int[] { 3, 0, 0, 0 });
-
             // label8 – sąsiedztwo
             label8.AutoSize = true;
             label8.Location = new Point(10, 147);
             label8.Name     = "label8";
             label8.Text     = "Sąsiedztwo (%):";
-
             // numNeighborhoodPct
             numNeighborhoodPct.Location = new Point(175, 144);
             numNeighborhoodPct.Maximum  = new decimal(new int[] { 100, 0, 0, 0 });
@@ -349,27 +325,24 @@ namespace MinErrorMap
             numNeighborhoodPct.Size     = new Size(80, 23);
             numNeighborhoodPct.TabIndex = 4;
             numNeighborhoodPct.Value    = new decimal(new int[] { 100, 0, 0, 0 });
-
-            // progressBarAlgorithm
+            // progressBarAlgorithm – rozciąga się poziomo
             progressBarAlgorithm.Location = new Point(10, 178);
             progressBarAlgorithm.Name     = "progressBarAlgorithm";
             progressBarAlgorithm.Size     = new Size(295, 18);
             progressBarAlgorithm.TabIndex = 10;
-
+            progressBarAlgorithm.Anchor   = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             // lblRestartInfo
             lblRestartInfo.AutoSize = true;
             lblRestartInfo.Font     = new Font("Segoe UI", 9F);
             lblRestartInfo.Location = new Point(10, 202);
             lblRestartInfo.Name     = "lblRestartInfo";
             lblRestartInfo.Text     = "Restart: —";
-
             // lblTimeElapsed
             lblTimeElapsed.AutoSize = true;
             lblTimeElapsed.Font     = new Font("Segoe UI", 9F);
             lblTimeElapsed.Location = new Point(120, 202);
             lblTimeElapsed.Name     = "lblTimeElapsed";
             lblTimeElapsed.Text     = "Czas: — ms";
-
             // lblImprovementPct
             lblImprovementPct.AutoSize  = true;
             lblImprovementPct.Font      = new Font("Segoe UI", 9F);
@@ -377,16 +350,16 @@ namespace MinErrorMap
             lblImprovementPct.Location  = new Point(10, 222);
             lblImprovementPct.Name      = "lblImprovementPct";
             lblImprovementPct.Text      = "Poprawa: —";
-
-            // lblStatus
-            lblStatus.AutoSize    = true;
+            // lblStatus – rozciąga się poziomo, stała wysokość
+            lblStatus.AutoSize    = false;
             lblStatus.BorderStyle = BorderStyle.FixedSingle;
             lblStatus.Font        = new Font("Segoe UI", 11F, FontStyle.Bold);
             lblStatus.Location    = new Point(324, 15);
             lblStatus.Name        = "lblStatus";
+            lblStatus.Size        = new Size(611, 28);
             lblStatus.Text        = "Czekam na uruchomienie...";
-
-            // chartProgress
+            lblStatus.Anchor      = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            // chartProgress – rozciąga się we wszystkich kierunkach
             chartArea1.Name = "ChartArea1";
             chartProgress.ChartAreas.Add(chartArea1);
             legend1.Name = "Legend1";
@@ -401,8 +374,9 @@ namespace MinErrorMap
             chartProgress.Size     = new Size(611, 400);
             chartProgress.TabIndex = 9;
             chartProgress.Text     = "chart1";
-
-            // btnStartSearch
+            chartProgress.Anchor   = AnchorStyles.Top | AnchorStyles.Bottom
+                                   | AnchorStyles.Left | AnchorStyles.Right;
+            // btnStartSearch – zakotwiczony do dołu-lewej
             btnStartSearch.Font     = new Font("Segoe UI", 18F);
             btnStartSearch.Location = new Point(10, 470);
             btnStartSearch.Name     = "btnStartSearch";
@@ -410,9 +384,9 @@ namespace MinErrorMap
             btnStartSearch.TabIndex = 4;
             btnStartSearch.Text     = "START";
             btnStartSearch.UseVisualStyleBackColor = true;
+            btnStartSearch.Anchor   = AnchorStyles.Bottom | AnchorStyles.Left;
             btnStartSearch.Click   += btnStartSearch_Click;
-
-            // btnPause
+            // btnPause – zakotwiczony do dołu-lewej (stała odległość od lewej)
             btnPause.Font     = new Font("Segoe UI", 18F);
             btnPause.Location = new Point(430, 470);
             btnPause.Name     = "btnPause";
@@ -420,9 +394,9 @@ namespace MinErrorMap
             btnPause.TabIndex = 5;
             btnPause.Text     = "PAUZA";
             btnPause.UseVisualStyleBackColor = true;
+            btnPause.Anchor   = AnchorStyles.Bottom | AnchorStyles.Left;
             btnPause.Click   += btnPause_Click;
-
-            // btnStop
+            // btnStop – zakotwiczony do dołu-prawej
             btnStop.Font     = new Font("Segoe UI", 18F);
             btnStop.Location = new Point(740, 470);
             btnStop.Name     = "btnStop";
@@ -430,8 +404,8 @@ namespace MinErrorMap
             btnStop.TabIndex = 6;
             btnStop.Text     = "STOP";
             btnStop.UseVisualStyleBackColor = true;
+            btnStop.Anchor   = AnchorStyles.Bottom | AnchorStyles.Right;
             btnStop.Click   += btnStop_Click;
-
             // ── tabPage3 – Wyniki ─────────────────────────────────────────
             tabPage3.Controls.Add(dgvResults);
             tabPage3.Controls.Add(gbSummary);
@@ -442,8 +416,7 @@ namespace MinErrorMap
             tabPage3.TabIndex = 2;
             tabPage3.Text     = "Wyniki";
             tabPage3.UseVisualStyleBackColor = true;
-
-            // dgvResults
+            // dgvResults – rozciąga się we wszystkich kierunkach
             dgvResults.AllowUserToAddRows          = false;
             dgvResults.AllowUserToDeleteRows       = false;
             dgvResults.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
@@ -452,8 +425,9 @@ namespace MinErrorMap
             dgvResults.ReadOnly  = true;
             dgvResults.Size      = new Size(645, 501);
             dgvResults.TabIndex  = 0;
-
-            // ── gbSummary ─────────────────────────────────────────────────
+            dgvResults.Anchor    = AnchorStyles.Top | AnchorStyles.Bottom
+                                 | AnchorStyles.Left | AnchorStyles.Right;
+            // ── gbSummary – panel po lewej, stała szerokość ───────────────
             gbSummary.Controls.Add(lblCapSize);
             gbSummary.Controls.Add(lblSumSize);
             gbSummary.Controls.Add(lblCapKE);
@@ -475,7 +449,7 @@ namespace MinErrorMap
             gbSummary.TabIndex = 1;
             gbSummary.TabStop  = false;
             gbSummary.Text     = "Podsumowanie wyników";
-
+            gbSummary.Anchor   = AnchorStyles.Top | AnchorStyles.Left;
             // lblCapSize + lblSumSize (y=26)
             lblCapSize.AutoSize = true;
             lblCapSize.Font     = new Font("Segoe UI", 9F);
@@ -489,7 +463,6 @@ namespace MinErrorMap
             lblSumSize.Name      = "lblSumSize";
             lblSumSize.Size      = new Size(120, 20);
             lblSumSize.Text      = "—";
-
             // lblCapKE + lblSumKE (y=58)
             lblCapKE.AutoSize = true;
             lblCapKE.Font     = new Font("Segoe UI", 9F);
@@ -503,7 +476,6 @@ namespace MinErrorMap
             lblSumKE.Name      = "lblSumKE";
             lblSumKE.Size      = new Size(120, 20);
             lblSumKE.Text      = "—";
-
             // lblCapScore + lblSumScore (y=90)
             lblCapScore.AutoSize = true;
             lblCapScore.Font     = new Font("Segoe UI", 9F);
@@ -517,7 +489,6 @@ namespace MinErrorMap
             lblSumScore.Name      = "lblSumScore";
             lblSumScore.Size      = new Size(120, 20);
             lblSumScore.Text      = "—";
-
             // lblCapRelErr + lblSumRelErr (y=122)
             lblCapRelErr.AutoSize = true;
             lblCapRelErr.Font     = new Font("Segoe UI", 9F);
@@ -531,7 +502,6 @@ namespace MinErrorMap
             lblSumRelErr.Name      = "lblSumRelErr";
             lblSumRelErr.Size      = new Size(120, 20);
             lblSumRelErr.Text      = "—";
-
             // lblCapDist + lblSumDist (y=154)
             lblCapDist.AutoSize = true;
             lblCapDist.Font     = new Font("Segoe UI", 9F);
@@ -545,7 +515,6 @@ namespace MinErrorMap
             lblSumDist.Name      = "lblSumDist";
             lblSumDist.Size      = new Size(120, 20);
             lblSumDist.Text      = "—";
-
             // lblCapIter + lblSumIter (y=186)
             lblCapIter.AutoSize = true;
             lblCapIter.Font     = new Font("Segoe UI", 9F);
@@ -559,7 +528,6 @@ namespace MinErrorMap
             lblSumIter.Name      = "lblSumIter";
             lblSumIter.Size      = new Size(120, 20);
             lblSumIter.Text      = "—";
-
             // lblCapTime + lblSumTime (y=218)
             lblCapTime.AutoSize = true;
             lblCapTime.Font     = new Font("Segoe UI", 9F);
@@ -573,7 +541,6 @@ namespace MinErrorMap
             lblSumTime.Name      = "lblSumTime";
             lblSumTime.Size      = new Size(120, 20);
             lblSumTime.Text      = "—";
-
             // ── tabPage4 – Testy automatyczne ────────────────────────────
             tabPage4.Location = new Point(4, 24);
             tabPage4.Name     = "tabPage4";
@@ -582,15 +549,14 @@ namespace MinErrorMap
             tabPage4.TabIndex = 3;
             tabPage4.Text     = "Testy automatyczne";
             tabPage4.UseVisualStyleBackColor = true;
-
             // ── Form ──────────────────────────────────────────────────────
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode       = AutoScaleMode.Font;
             ClientSize          = new Size(1017, 605);
+            MinimumSize         = new Size(800, 500);
             Controls.Add(tabControl1);
             Name = "MinErrorMap – Tabu Search";
             Text = "MinErrorMap – Tabu Search";
-
             tabControl1.ResumeLayout(false);
             tabPage1.ResumeLayout(false);
             tabPage1.PerformLayout();
@@ -611,9 +577,7 @@ namespace MinErrorMap
             tabPage3.PerformLayout();
             ResumeLayout(false);
         }
-
         #endregion
-
         // ── Tab 1 ────────────────────────────────────────────────────────
         private TabControl    tabControl1;
         private TabPage       tabPage1;
