@@ -93,15 +93,30 @@ namespace MinErrorMap
         {
             if (_currentMatrix == null) { MessageBox.Show("Najpierw wygeneruj lub wczytaj macierz."); return; }
 
-            int errors = (int)numErrors.Value;
+            int rows = _currentMatrix.GetLength(0);
+            int cols = _currentMatrix.GetLength(1);
+
+            // Przelicz procent na liczbę błędów
+            int errors = (int)Math.Round(rows * cols * (double)numErrors.Value / 100.0);
+            if (errors == 0)
+            {
+                MessageBox.Show("Podany procent zaokrągla się do 0 błędów. Zwiększ wartość.",
+                    "Za mało błędów", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
                 _generator.ApplyErrors(_currentMatrix, errors);
-                _knownErrors = _generator.KnownErrors;
-                UpdateKnownErrorsLabel($"Znane błędy (introduced): {_knownErrors}  " +
-                    $"({100.0 * _knownErrors / (_currentMatrix.GetLength(0) * _currentMatrix.GetLength(1)):F1}% komórek)");
-                int rows = _currentMatrix.GetLength(0);
-                int cols = _currentMatrix.GetLength(1);
+
+                // Akumuluj błędy – każde kliknięcie dodaje do poprzednich
+                _knownErrors += _generator.KnownErrors;
+
+                double pct = 100.0 * _knownErrors / (rows * cols);
+                UpdateKnownErrorsLabel(
+                    $"Znane błędy (łącznie): {_knownErrors}  ({pct:F1}% komórek)  " +
+                    $"[+{_generator.KnownErrors} w tej rundzie]");
+
                 DisplayMatrixInGrid(dgvMatrix, _currentMatrix, rows, cols);
             }
             catch (InvalidOperationException ex)
