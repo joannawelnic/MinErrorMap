@@ -8,7 +8,6 @@ namespace MinErrorMap
         private Random _random = new Random();
         private int _nRows;
         private int _nCols;
-
         // liczba wprowadzonych błędów do macierzy - stanowi dolną granicę wartości optimum po przetasowaniu kolumn
         public int KnownErrors { get; private set; } = 0;
 
