@@ -9,17 +9,12 @@ namespace MinErrorMap
         private int _nRows;
         private int _nCols;
 
-        /// <summary>
-        /// Liczba rzeczywiście wprowadzonych błędów do macierzy.
-        /// Stanowi dolną granicę wartości optimum po przetasowaniu kolumn.
-        /// </summary>
+        // liczba wprowadzonych błędów do macierzy - stanowi dolną granicę wartości optimum po przetasowaniu kolumn
         public int KnownErrors { get; private set; } = 0;
 
-        /// <summary>
-        /// Generuje losową macierz binarną spełniającą własność C1P (consecutive ones property).
-        /// Każdy wiersz ma ciągły blok jedynek o długości co najmniej 2.
-        /// Gwarantuje brak kolumn złożonych wyłącznie z zer.
-        /// </summary>
+        // generuje losowa macierz binarna spełniajaca własnosc consecutive ones
+        // kazdy wiersz ma ciągły blok jedynek o długości co najmniej 2
+        // brak wierszy i kolumn z samych zer
         public int[,] GenerateMatrix(int rows, int cols)
         {
             if (cols < 2)
@@ -39,15 +34,15 @@ namespace MinErrorMap
 
                 for (int i = 0; i < rows; i++)
                 {
-                    // Start bloku: 0 do cols-2 (zostaje miejsce na min. 2 jedynki)
+                    // start bloku: 0 do cols-2 -miejsce na min 2 jedynki
                     int start = _random.Next(0, cols - 1);
-                    // Długość bloku: min 2, max tyle ile zostało do końca
+                    // dlugosc bloku: min 2 -max tyle ile zostało do końca
                     int length = _random.Next(2, cols - start + 1);
                     for (int j = start; j < start + length; j++)
                         matrix[i, j] = 1;
                 }
 
-                // Walidacja: żadna kolumna nie może być złożona z samych zer
+                // zadna kolumna nie może być zlozona z samych zer
                 for (int j = 0; j < cols && isValid; j++)
                 {
                     bool hasOne = false;
@@ -60,9 +55,7 @@ namespace MinErrorMap
             return matrix;
         }
 
-        /// <summary>
-        /// Tworzy pustą macierz (same zera) do ręcznego wypełnienia przez użytkownika.
-        /// </summary>
+        // pusta macierz (same zera) do recznego wypelnienia
         public int[,] CreateEmptyMatrix(int rows, int cols)
         {
             _nRows = rows;
@@ -71,24 +64,13 @@ namespace MinErrorMap
             return new int[rows, cols];
         }
 
-        /// <summary>
-        /// Wprowadza DOKŁADNIE errorsRequested realnych błędów do macierzy C1P.
-        ///
-        /// Zasada błędu realnego (nie naruszającego struktury w wymyślny sposób):
-        ///   1→0 : tylko jeśli oba sąsiedzi (lewy i prawy) to 1 – środek bloku jedynek.
-        ///          Zamiana końca bloku 1→0 jedynie skraca blok, co nie jest prawdziwym błędem.
-        ///   0→1 : tylko jeśli żaden sąsiad nie jest 1 – izolowana pozycja.
-        ///          Zamiana zera 0→1 obok końca bloku jedynie ten blok rozszerza.
-        ///
-        /// Metoda pre-skanuje wszystkie dozwolone pozycje, tasuje je i stosuje pierwsze N.
-        /// Rzuca wyjątek jeśli macierz nie ma wystarczająco dużo dozwolonych pozycji.
-        /// </summary>
+        // Wprowadza DOKŁADNIE errorsRequested realnych błędów do macierzy
         public void ApplyErrors(int[,] matrix, int errorsRequested)
         {
             _nRows = matrix.GetLength(0);
             _nCols = matrix.GetLength(1);
 
-            // Zbierz wszystkie pozycje gdzie można wprowadzić realny błąd
+            // wszystkie pozycje gdzie można wprowadzic błąd
             var validPositions = new List<(int r, int c, int newVal)>();
 
             for (int r = 0; r < _nRows; r++)
@@ -100,23 +82,24 @@ namespace MinErrorMap
 
                     if (matrix[r, c] == 1 && leftIsOne && rightIsOne)
                     {
-                        // Środek bloku jedynek – zamiana 1→0 tworzy "dziurę" (realny błąd)
+                        // zamiana 1 na 0 tylko jeśli oba sąsiedzi (lewy i prawy) to 1 czyli w srodku bloku jedynek
                         validPositions.Add((r, c, 0));
                     }
                     else if (matrix[r, c] == 0 && !leftIsOne && !rightIsOne)
                     {
-                        // Izolowana pozycja – zamiana 0→1 tworzy samotną jedynkę (realny błąd)
+                        // zamiana 0 na 1 tylko jeśli żaden sąsiad nie jest 1 zeby nie dodac do bloku jedynek
                         validPositions.Add((r, c, 1));
                     }
                 }
             }
 
+            // wyjatek jeśli macierz nie ma wystarczająco dużo dozwolonych pozycji
             if (validPositions.Count < errorsRequested)
                 throw new InvalidOperationException(
                     $"Można wprowadzić maksymalnie {validPositions.Count} realnych błędów " +
                     $"do tej macierzy. Zmniejsz liczbę błędów lub zwiększ rozmiar macierzy.");
 
-            // Tasuj Fisherem-Yatesem i wybierz pierwsze errorsRequested pozycji
+            // tasuj wszystkie dozwolone pozycje i ustaw bledy na pierwsze N
             for (int i = validPositions.Count - 1; i > 0; i--)
             {
                 int j = _random.Next(i + 1);
@@ -132,10 +115,7 @@ namespace MinErrorMap
             KnownErrors = errorsRequested;
         }
 
-        /// <summary>
-        /// Tasuje kolumny macierzy algorytmem Fisher-Yates.
-        /// Zwraca nową macierz z przetasowanymi kolumnami.
-        /// </summary>
+        // tasuje kolumny macierzy algorytmem Fisher-Yates.
         public int[,] ShuffleColumns(int[,] originalMatrix)
         {
             int rows = originalMatrix.GetLength(0);
