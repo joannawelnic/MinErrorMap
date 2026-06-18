@@ -68,7 +68,6 @@ namespace MinErrorMap
             lblSumIter = new Label();
             lblCapTime = new Label();
             lblSumTime = new Label();
-            tabPage4 = new TabPage();
             backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
@@ -92,7 +91,6 @@ namespace MinErrorMap
             tabControl1.Controls.Add(tabPage1);
             tabControl1.Controls.Add(tabPage2);
             tabControl1.Controls.Add(tabPage3);
-            tabControl1.Controls.Add(tabPage4);
             tabControl1.Location = new Point(12, 12);
             tabControl1.Name = "tabControl1";
             tabControl1.SelectedIndex = 0;
@@ -676,16 +674,6 @@ namespace MinErrorMap
             lblSumTime.TabIndex = 13;
             lblSumTime.Text = "—";
             // 
-            // tabPage4
-            // 
-            tabPage4.Location = new Point(4, 24);
-            tabPage4.Name = "tabPage4";
-            tabPage4.Padding = new Padding(3);
-            tabPage4.Size = new Size(976, 553);
-            tabPage4.TabIndex = 3;
-            tabPage4.Text = "Testy automatyczne";
-            tabPage4.UseVisualStyleBackColor = true;
-            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -715,7 +703,7 @@ namespace MinErrorMap
             ResumeLayout(false);
         }
         #endregion
-        // ── Tab 1 ────────────────────────────────────────────────────────
+
         private TabControl tabControl1;
         private TabPage tabPage1;
         private NumericUpDown numErrors;
@@ -732,7 +720,7 @@ namespace MinErrorMap
         private Label label2;
         private Label label3;
         private Label lblKnownErrors;
-        // ── Tab 2 ────────────────────────────────────────────────────────
+
         private TabPage tabPage2;
         private TextBox txtMaxIter;
         private TextBox txtTabuTenure;
@@ -753,7 +741,7 @@ namespace MinErrorMap
         private Label lblTimeElapsed;
         private Label lblImprovementPct;
         private System.Windows.Forms.DataVisualization.Charting.Chart chartProgress;
-        // ── Tab 3 ────────────────────────────────────────────────────────
+
         private TabPage tabPage3;
         private DataGridView dgvResults;
         private GroupBox gbSummary;
@@ -771,9 +759,7 @@ namespace MinErrorMap
         private Label lblSumIter;
         private Label lblCapTime;
         private Label lblSumTime;
-        // ── Tab 4 ────────────────────────────────────────────────────────
-        private TabPage tabPage4;
-        // ── Misc ─────────────────────────────────────────────────────────
+
         private System.ComponentModel.BackgroundWorker backgroundWorker1;
     }
 }
